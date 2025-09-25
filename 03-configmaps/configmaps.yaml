@@ -1,0 +1,150 @@
+# Central Server Configuration
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: cs-config
+  namespace: xroad
+data:
+  server.conf: |
+    [common]
+    temp-files-path = /var/tmp/xroad
+    log-path = /var/log/xroad
+    log-level = INFO
+    
+    [database]
+    host = cs-postgres-service
+    port = 5432
+    database = xroad_cs
+    username = postgres
+    
+    [proxy]
+    client-http-port = 8080
+    client-https-port = 8443
+    server-http-port = 8080
+    server-https-port = 8443
+    
+    [signer]
+    ocsp-cache-path = /var/cache/xroad
+    time-stamp-interval = 60
+    
+  local.conf: |
+    [common]
+    temp-files-path = /var/tmp/xroad
+    log-path = /var/log/xroad
+    log-level = INFO
+    
+    [database]
+    host = cs-postgres-service
+    port = 5432
+    database = xroad_cs
+    username = postgres
+    
+    [proxy]
+    client-http-port = 8080
+    client-https-port = 8443
+    server-http-port = 8080
+    server-https-port = 8443
+    
+    [signer]
+    ocsp-cache-path = /var/cache/xroad
+    time-stamp-interval = 60
+---
+# Security Server Configuration
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ss-config
+  namespace: xroad
+data:
+  server.conf: |
+    [common]
+    temp-files-path = /var/tmp/xroad
+    log-path = /var/log/xroad
+    log-level = INFO
+    
+    [database]
+    host = ss-postgres-primary-service
+    port = 5432
+    database = xroad_ss
+    username = xroad
+    
+    [proxy]
+    client-http-port = 8080
+    client-https-port = 8443
+    server-http-port = 8080
+    server-https-port = 8443
+    
+    [signer]
+    ocsp-cache-path = /var/cache/xroad
+    time-stamp-interval = 60
+    
+    [center]
+    registration-service = cs-registration-service:8443
+    
+  local.conf: |
+    [common]
+    temp-files-path = /var/tmp/xroad
+    log-path = /var/log/xroad
+    log-level = INFO
+    
+    [database]
+    host = ss-postgres-primary-service
+    port = 5432
+    database = xroad_ss
+    username = xroad
+    
+    [proxy]
+    client-http-port = 8080
+    client-https-port = 8443
+    server-http-port = 8080
+    server-https-port = 8443
+    
+    [signer]
+    ocsp-cache-path = /var/cache/xroad
+    time-stamp-interval = 60
+    
+    [center]
+    registration-service = cs-registration-service:8443
+---
+# PostgreSQL Configuration
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: postgres-config
+  namespace: xroad
+data:
+  postgresql.conf: |
+    # Connection Settings
+    listen_addresses = '*'
+    port = 5432
+    max_connections = 200
+    
+    # Memory Settings
+    shared_buffers = 256MB
+    effective_cache_size = 1GB
+    work_mem = 4MB
+    maintenance_work_mem = 64MB
+    
+    # WAL Settings
+    wal_level = replica
+    max_wal_senders = 3
+    max_replication_slots = 3
+    
+    # Logging
+    log_destination = 'stderr'
+    logging_collector = on
+    log_directory = '/var/log/postgresql'
+    log_filename = 'postgresql-%Y-%m-%d_%H%M%S.log'
+    log_min_duration_statement = 1000
+    
+    # Replication Settings
+    hot_standby = on
+    hot_standby_feedback = on
+    
+  pg_hba.conf: |
+    # TYPE  DATABASE        USER            ADDRESS                 METHOD
+    local   all             all                                     trust
+    host    all             all             127.0.0.1/32            md5
+    host    all             all             ::1/128                 md5
+    host    all             all             0.0.0.0/0               md5
+    host    replication     replicator      0.0.0.0/0               md5

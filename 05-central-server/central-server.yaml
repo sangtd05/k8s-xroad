@@ -1,0 +1,162 @@
+# Central Server Deployment
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: cs-config-pvc
+  namespace: xroad
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 10Gi
+  storageClassName: standard
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: central-server
+  namespace: xroad
+  labels:
+    app: central-server
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: central-server
+  template:
+    metadata:
+      labels:
+        app: central-server
+    spec:
+      nodeSelector:
+        kubernetes.io/hostname: worker-node-1  # Chỉ định worker node 1
+      containers:
+      - name: central-server
+        image: niis/xroad-central-server:7.8.0
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 8080
+          name: http
+        - containerPort: 8443
+          name: https
+        - containerPort: 4000
+          name: admin
+        env:
+        - name: XROAD_ADMIN_USER
+          valueFrom:
+            secretKeyRef:
+              name: xroad-admin-secret
+              key: username
+        - name: XROAD_ADMIN_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: xroad-admin-secret
+              key: password
+        - name: XROAD_DB_HOST
+          value: cs-postgres-service
+        - name: XROAD_DB_PORT
+          value: "5432"
+        - name: XROAD_DB_PWD
+          valueFrom:
+            secretKeyRef:
+              name: cs-db-secret
+              key: password
+        - name: XROAD_DATABASE_NAME
+          value: xroad_cs
+        - name: XROAD_LOG_LEVEL
+          value: INFO
+        volumeMounts:
+        - name: cs-config-volume
+          mountPath: /etc/xroad/
+        - name: cs-logs-volume
+          mountPath: /var/log/xroad
+        - name: cs-tmp-volume
+          mountPath: /var/tmp/xroad
+        resources:
+          requests:
+            memory: "1Gi"
+            cpu: "500m"
+          limits:
+            memory: "4Gi"
+            cpu: "2"
+        livenessProbe:
+          httpGet:
+            path: /actuator/health
+            port: 8080
+          initialDelaySeconds: 60
+          periodSeconds: 30
+          timeoutSeconds: 10
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /actuator/health
+            port: 8080
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+      volumes:
+      - name: cs-config-volume
+        persistentVolumeClaim:
+          claimName: cs-config-pvc
+      - name: cs-logs-volume
+        emptyDir: {}
+      - name: cs-tmp-volume
+        emptyDir: {}
+      initContainers:
+      - name: cs-init
+        image: busybox:1.35
+        command: ['sh', '-c']
+        args:
+        - |
+          echo "Initializing Central Server configuration..."
+          mkdir -p /etc/xroad/conf.d
+          mkdir -p /etc/xroad/services
+          echo "Central Server initialization completed"
+        volumeMounts:
+        - name: cs-config-volume
+          mountPath: /etc/xroad/
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: cs-service
+  namespace: xroad
+  labels:
+    app: central-server
+spec:
+  selector:
+    app: central-server
+  ports:
+  - name: http
+    port: 8080
+    targetPort: 8080
+    protocol: TCP
+  - name: https
+    port: 8443
+    targetPort: 8443
+    protocol: TCP
+  - name: admin
+    port: 4000
+    targetPort: 4000
+    protocol: TCP
+  type: ClusterIP
+---
+# Central Server Registration Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: cs-registration-service
+  namespace: xroad
+  labels:
+    app: central-server
+spec:
+  selector:
+    app: central-server
+  ports:
+  - name: registration
+    port: 8443
+    targetPort: 8443
+    protocol: TCP
+  type: ClusterIP
