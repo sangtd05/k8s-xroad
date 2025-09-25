@@ -37,6 +37,27 @@ data:
     # Central server specific configuration
     central-server.registration-service.enabled=true
     central-server.management-service.enabled=true
+  signer.conf: |
+    # X-Road Signer Configuration
+    # Basic configuration for X-Road Signer service
+
+    # Database configuration
+    db.host=cs-postgres-service
+    db.port=5432
+    db.name=xroad_cs
+    db.user=admin
+    db.password=admin123
+
+    # Signer configuration
+    signer.port=5588
+    signer.host=0.0.0.0
+
+    # Logging configuration
+    logging.level=INFO
+    logging.file=/var/log/xroad/signer.log
+
+    # Security configuration
+    security.enabled=true
 ---
 # Central Server Deployment
 apiVersion: apps/v1
@@ -99,6 +120,9 @@ spec:
         - name: cs-config-file
           mountPath: /etc/xroad/conf.d/xroad-central-server.conf
           subPath: xroad-central-server.conf
+        - name: signer-config-file
+          mountPath: /etc/xroad/services/signer.conf
+          subPath: signer.conf
         - name: cs-logs-volume
           mountPath: /var/log/xroad
         - name: cs-tmp-volume
@@ -132,6 +156,9 @@ spec:
           path: /var/lib/xroad/cs-config
           type: DirectoryOrCreate
       - name: cs-config-file
+        configMap:
+          name: central-server-config
+      - name: signer-config-file
         configMap:
           name: central-server-config
       - name: cs-logs-volume
