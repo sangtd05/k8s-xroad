@@ -1,4 +1,44 @@
 # Central Server Deployment
+# Central Server Configuration ConfigMap
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: central-server-config
+  namespace: xroad
+data:
+  xroad-central-server.conf: |
+    # X-Road Central Server Configuration
+    # Basic configuration for X-Road Central Server
+
+    # Database configuration
+    db.host=cs-postgres-service
+    db.port=5432
+    db.name=xroad_cs
+    db.user=admin
+    db.password=admin123
+
+    # Server configuration
+    server.host=0.0.0.0
+    server.port=8080
+    server.ssl.port=8443
+    server.admin.port=4000
+
+    # Logging configuration
+    logging.level=INFO
+    logging.file=/var/log/xroad/xroad.log
+
+    # Security configuration
+    security.enabled=true
+    security.ssl.enabled=true
+
+    # Instance configuration
+    instance.identifier=EE
+    instance.name=Test Instance
+
+    # Central server specific configuration
+    central-server.registration-service.enabled=true
+    central-server.management-service.enabled=true
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -53,13 +93,16 @@ spec:
           value: xroad_cs
         - name: XROAD_LOG_LEVEL
           value: INFO
-        volumeMounts:
-        - name: cs-config-volume
-          mountPath: /etc/xroad/
-        - name: cs-logs-volume
-          mountPath: /var/log/xroad
-        - name: cs-tmp-volume
-          mountPath: /var/tmp/xroad
+             volumeMounts:
+             - name: cs-config-volume
+               mountPath: /etc/xroad/
+             - name: cs-config-file
+               mountPath: /etc/xroad/conf.d/xroad-central-server.conf
+               subPath: xroad-central-server.conf
+             - name: cs-logs-volume
+               mountPath: /var/log/xroad
+             - name: cs-tmp-volume
+               mountPath: /var/tmp/xroad
         resources:
           requests:
             memory: "1Gi"
@@ -83,15 +126,18 @@ spec:
           periodSeconds: 10
           timeoutSeconds: 5
           failureThreshold: 3
-      volumes:
-      - name: cs-config-volume
-        hostPath:
-          path: /var/lib/xroad/cs-config
-          type: DirectoryOrCreate
-      - name: cs-logs-volume
-        emptyDir: {}
-      - name: cs-tmp-volume
-        emptyDir: {}
+             volumes:
+             - name: cs-config-volume
+               hostPath:
+                 path: /var/lib/xroad/cs-config
+                 type: DirectoryOrCreate
+             - name: cs-config-file
+               configMap:
+                 name: central-server-config
+             - name: cs-logs-volume
+               emptyDir: {}
+             - name: cs-tmp-volume
+               emptyDir: {}
       initContainers:
       - name: cs-init
         image: busybox:1.35
