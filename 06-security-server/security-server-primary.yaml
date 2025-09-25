@@ -1,16 +1,4 @@
 # Security Server Primary Deployment
-apiVersion: v1
-kind: PersistentVolumeClaim
-metadata:
-  name: ss-primary-config-pvc
-  namespace: xroad
-spec:
-  accessModes:
-    - ReadWriteOnce
-  resources:
-    requests:
-      storage: 10Gi
----
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -112,8 +100,9 @@ spec:
           failureThreshold: 3
       volumes:
       - name: ss-config-volume
-        persistentVolumeClaim:
-          claimName: ss-primary-config-pvc
+        hostPath:
+          path: /var/lib/xroad/ss-primary-config
+          type: DirectoryOrCreate
       - name: ss-logs-volume
         emptyDir: {}
       - name: ss-tmp-volume

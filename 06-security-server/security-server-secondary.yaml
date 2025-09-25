@@ -1,16 +1,4 @@
 # Security Server Secondary Deployment
-apiVersion: v1
-kind: PersistentVolumeClaim
-metadata:
-  name: ss-secondary-config-pvc
-  namespace: xroad
-spec:
-  accessModes:
-    - ReadWriteOnce
-  resources:
-    requests:
-      storage: 10Gi
----
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -114,8 +102,9 @@ spec:
           failureThreshold: 3
       volumes:
       - name: ss-config-volume
-        persistentVolumeClaim:
-          claimName: ss-secondary-config-pvc
+        hostPath:
+          path: /var/lib/xroad/ss-secondary-config
+          type: DirectoryOrCreate
       - name: ss-logs-volume
         emptyDir: {}
       - name: ss-tmp-volume

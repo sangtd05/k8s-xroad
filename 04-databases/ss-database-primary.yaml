@@ -1,16 +1,4 @@
 # Security Server Database Primary (Read/Write) - PostgreSQL
-apiVersion: v1
-kind: PersistentVolumeClaim
-metadata:
-  name: ss-postgres-primary-pvc
-  namespace: xroad
-spec:
-  accessModes:
-    - ReadWriteOnce
-  resources:
-    requests:
-      storage: 20Gi
----
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -98,8 +86,9 @@ spec:
           failureThreshold: 6
       volumes:
       - name: postgres-storage
-        persistentVolumeClaim:
-          claimName: ss-postgres-primary-pvc
+        hostPath:
+          path: /var/lib/postgresql/ss-primary-data
+          type: DirectoryOrCreate
       - name: postgres-config
         configMap:
           name: postgres-config

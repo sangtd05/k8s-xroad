@@ -1,16 +1,4 @@
 # Security Server Database Secondary (Read Only) - PostgreSQL
-apiVersion: v1
-kind: PersistentVolumeClaim
-metadata:
-  name: ss-postgres-secondary-pvc
-  namespace: xroad
-spec:
-  accessModes:
-    - ReadWriteOnce
-  resources:
-    requests:
-      storage: 20Gi
----
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -100,8 +88,9 @@ spec:
           failureThreshold: 6
       volumes:
       - name: postgres-storage
-        persistentVolumeClaim:
-          claimName: ss-postgres-secondary-pvc
+        hostPath:
+          path: /var/lib/postgresql/ss-secondary-data
+          type: DirectoryOrCreate
       - name: postgres-config
         configMap:
           name: postgres-config

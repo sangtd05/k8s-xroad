@@ -1,16 +1,4 @@
 # Central Server Deployment
-apiVersion: v1
-kind: PersistentVolumeClaim
-metadata:
-  name: cs-config-pvc
-  namespace: xroad
-spec:
-  accessModes:
-    - ReadWriteOnce
-  resources:
-    requests:
-      storage: 10Gi
----
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -97,8 +85,9 @@ spec:
           failureThreshold: 3
       volumes:
       - name: cs-config-volume
-        persistentVolumeClaim:
-          claimName: cs-config-pvc
+        hostPath:
+          path: /var/lib/xroad/cs-config
+          type: DirectoryOrCreate
       - name: cs-logs-volume
         emptyDir: {}
       - name: cs-tmp-volume
