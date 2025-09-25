@@ -65,7 +65,7 @@ nodeSelector:
 ### Bước 5: Triển khai
 ```bash
 # Chạy script triển khai
-cd k8s-xroad-deployment
+cd k8s-xroad
 ./09-deployment-scripts/deploy.sh
 
 # Hoặc triển khai từng bước:

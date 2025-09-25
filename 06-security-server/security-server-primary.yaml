@@ -30,7 +30,7 @@ spec:
         app: security-server-primary
     spec:
       nodeSelector:
-        kubernetes.io/hostname: worker-node-2  # Chỉ định worker node 2
+        kubernetes.io/hostname: k8s-worker-2  # Chỉ định worker node 2
       containers:
       - name: security-server
         image: niis/xroad-security-server-sidecar:7.8.0

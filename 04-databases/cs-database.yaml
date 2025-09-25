@@ -30,7 +30,7 @@ spec:
         app: cs-postgres
     spec:
       nodeSelector:
-        kubernetes.io/hostname: worker-node-1  # Chỉ định worker node 1
+        kubernetes.io/hostname: k8s-worker-1  # Chỉ định worker node 1
       containers:
       - name: postgres
         image: postgres:15-alpine
