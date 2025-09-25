@@ -93,16 +93,16 @@ spec:
           value: xroad_cs
         - name: XROAD_LOG_LEVEL
           value: INFO
-             volumeMounts:
-             - name: cs-config-volume
-               mountPath: /etc/xroad/
-             - name: cs-config-file
-               mountPath: /etc/xroad/conf.d/xroad-central-server.conf
-               subPath: xroad-central-server.conf
-             - name: cs-logs-volume
-               mountPath: /var/log/xroad
-             - name: cs-tmp-volume
-               mountPath: /var/tmp/xroad
+        volumeMounts:
+        - name: cs-config-volume
+          mountPath: /etc/xroad/
+        - name: cs-config-file
+          mountPath: /etc/xroad/conf.d/xroad-central-server.conf
+          subPath: xroad-central-server.conf
+        - name: cs-logs-volume
+          mountPath: /var/log/xroad
+        - name: cs-tmp-volume
+          mountPath: /var/tmp/xroad
         resources:
           requests:
             memory: "1Gi"
