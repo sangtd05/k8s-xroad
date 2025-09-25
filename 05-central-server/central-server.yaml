@@ -1,4 +1,3 @@
-# Central Server Deployment
 # Central Server Configuration ConfigMap
 apiVersion: v1
 kind: ConfigMap
@@ -39,6 +38,7 @@ data:
     central-server.registration-service.enabled=true
     central-server.management-service.enabled=true
 ---
+# Central Server Deployment
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -126,18 +126,18 @@ spec:
           periodSeconds: 10
           timeoutSeconds: 5
           failureThreshold: 3
-             volumes:
-             - name: cs-config-volume
-               hostPath:
-                 path: /var/lib/xroad/cs-config
-                 type: DirectoryOrCreate
-             - name: cs-config-file
-               configMap:
-                 name: central-server-config
-             - name: cs-logs-volume
-               emptyDir: {}
-             - name: cs-tmp-volume
-               emptyDir: {}
+      volumes:
+      - name: cs-config-volume
+        hostPath:
+          path: /var/lib/xroad/cs-config
+          type: DirectoryOrCreate
+      - name: cs-config-file
+        configMap:
+          name: central-server-config
+      - name: cs-logs-volume
+        emptyDir: {}
+      - name: cs-tmp-volume
+        emptyDir: {}
       initContainers:
       - name: cs-init
         image: busybox:1.35
@@ -152,6 +152,7 @@ spec:
         - name: cs-config-volume
           mountPath: /etc/xroad/
 ---
+# Central Server Service
 apiVersion: v1
 kind: Service
 metadata:
