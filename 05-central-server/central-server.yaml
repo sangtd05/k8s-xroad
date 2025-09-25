@@ -20,15 +20,15 @@ spec:
         kubernetes.io/hostname: k8s-worker-1  # Chỉ định worker node 1
       containers:
       - name: central-server
-        image: niis/xroad-central-server:7.8.0
+        image: niis/xroad-central-server:7.7.0
         imagePullPolicy: Always
         ports:
+        - containerPort: 4000
+          name: admin
         - containerPort: 8080
           name: http
         - containerPort: 8443
           name: https
-        - containerPort: 4000
-          name: admin
         env:
         - name: XROAD_ADMIN_USER
           valueFrom:
