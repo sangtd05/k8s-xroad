@@ -13,10 +13,10 @@ metadata:
   namespace: xroad
 spec:
   hard:
-    requests.cpu: "4"
-    requests.memory: 8Gi
-    limits.cpu: "8"
-    limits.memory: 16Gi
+    requests.cpu: "6"
+    requests.memory: 12Gi
+    limits.cpu: "12"
+    limits.memory: 24Gi
     persistentvolumeclaims: "10"
     pods: "20"
     services: "10"
