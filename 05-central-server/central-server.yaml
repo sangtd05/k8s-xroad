@@ -58,6 +58,26 @@ data:
 
     # Security configuration
     security.enabled=true
+  centralserver-admin-service.conf: |
+    # X-Road Central Server Admin Service Configuration
+
+    # Database configuration
+    db.host=cs-postgres-service
+    db.port=5432
+    db.name=xroad_cs
+    db.user=admin
+    db.password=admin123
+
+    # Server configuration
+    server.port=8080
+    server.host=0.0.0.0
+
+    # Logging configuration
+    logging.level=INFO
+    logging.file=/var/log/xroad/admin-service.log
+
+    # Security configuration
+    security.enabled=true
 ---
 # Central Server Deployment
 apiVersion: apps/v1
@@ -123,6 +143,9 @@ spec:
         - name: signer-config-file
           mountPath: /etc/xroad/services/signer.conf
           subPath: signer.conf
+        - name: admin-service-config-file
+          mountPath: /etc/xroad/services/centralserver-admin-service.conf
+          subPath: centralserver-admin-service.conf
         - name: cs-logs-volume
           mountPath: /var/log/xroad
         - name: cs-tmp-volume
@@ -159,6 +182,9 @@ spec:
         configMap:
           name: central-server-config
       - name: signer-config-file
+        configMap:
+          name: central-server-config
+      - name: admin-service-config-file
         configMap:
           name: central-server-config
       - name: cs-logs-volume
