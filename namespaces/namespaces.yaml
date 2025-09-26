@@ -1,0 +1,13 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: xroad
+  labels:
+    name: xroad
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: xroad-monitoring
+  labels:
+    name: xroad-monitoring

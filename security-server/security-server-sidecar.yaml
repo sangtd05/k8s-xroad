@@ -1,0 +1,147 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: security-server-sidecar
+  namespace: xroad
+  labels:
+    app: security-server-sidecar
+spec:
+  type: LoadBalancer
+  ports:
+    - port: 5500
+      targetPort: 5500
+      protocol: TCP
+      name: messaging
+    - port: 5577
+      targetPort: 5577
+      protocol: TCP
+      name: ocsp
+    - port: 8443
+      targetPort: 8443
+      protocol: TCP
+      name: consumer
+    - port: 4000
+      targetPort: 4000
+      protocol: TCP
+      name: admin
+    - port: 5588
+      targetPort: 5588
+      protocol: TCP
+      name: healthcheck
+  selector:
+    app: security-server-sidecar
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: sidecar-config-pvc
+  namespace: xroad
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 5Gi
+  storageClassName: xroad-storage
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: sidecar-data-pvc
+  namespace: xroad
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 10Gi
+  storageClassName: xroad-storage
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: security-server-sidecar
+  namespace: xroad
+spec:
+  replicas: 3 # Triển khai trên 3 worker nodes
+  selector:
+    matchLabels:
+      app: security-server-sidecar
+  template:
+    metadata:
+      labels:
+        app: security-server-sidecar
+    spec:
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 100
+              podAffinityTerm:
+                labelSelector:
+                  matchExpressions:
+                    - key: app
+                      operator: In
+                      values:
+                        - security-server-sidecar
+                topologyKey: kubernetes.io/hostname
+      containers:
+        - name: security-server-sidecar
+          image: niis/xroad-security-server-sidecar:7.8.0
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 5500
+            - containerPort: 5577
+            - containerPort: 8443
+            - containerPort: 4000
+            - containerPort: 5588
+          env:
+            - name: XROAD_TOKEN_PIN
+              value: "12345"
+            - name: XROAD_ADMIN_USER
+              value: "xrd"
+            - name: XROAD_ADMIN_PASSWORD
+              value: "secret"
+            - name: XROAD_DB_HOST
+              value: "postgresql"
+            - name: XROAD_DB_PORT
+              value: "5432"
+            - name: XROAD_DB_PWD
+              value: "xroad123"
+            - name: XROAD_LOG_LEVEL
+              value: "INFO"
+            - name: XROAD_DATABASE_NAME
+              value: "xroad"
+          volumeMounts:
+            - name: sidecar-config
+              mountPath: /etc/xroad
+            - name: sidecar-data
+              mountPath: /var/lib/xroad
+          securityContext:
+            capabilities:
+              drop: ["NET_RAW"]
+          resources:
+            requests:
+              memory: "2Gi"
+              cpu: "1000m"
+            limits:
+              memory: "4Gi"
+              cpu: "2000m"
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 5588
+            initialDelaySeconds: 60
+            periodSeconds: 30
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 5588
+            initialDelaySeconds: 30
+            periodSeconds: 10
+      volumes:
+        - name: sidecar-config
+          persistentVolumeClaim:
+            claimName: sidecar-config-pvc
+        - name: sidecar-data
+          persistentVolumeClaim:
+            claimName: sidecar-data-pvc
