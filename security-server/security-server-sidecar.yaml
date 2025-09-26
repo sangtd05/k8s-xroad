@@ -86,7 +86,7 @@ spec:
                 topologyKey: kubernetes.io/hostname
       containers:
         - name: security-server-sidecar
-          image: niis/xroad-security-server-sidecar:7.8.0
+          image: niis/xroad-security-server-sidecar:7.7.0
           imagePullPolicy: Always
           ports:
             - containerPort: 5500
