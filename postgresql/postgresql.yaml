@@ -43,7 +43,7 @@ spec:
         app: postgresql
     spec:
       nodeSelector:
-        kubernetes.io/hostname: worker-1 # Chỉ định node cụ thể
+        kubernetes.io/hostname: k8s-worker-1 # Chỉ định node cụ thể
       containers:
         - name: postgresql
           image: postgres:16

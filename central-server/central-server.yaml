@@ -59,7 +59,7 @@ spec:
         app: central-server
     spec:
       nodeSelector:
-        kubernetes.io/hostname: worker-1
+        kubernetes.io/hostname: k8s-worker-1
       containers:
         - name: central-server
           image: niis/xroad-centralserver:7.8.0
