@@ -22,10 +22,9 @@ RUN apt-get -qq update \
 FROM base AS centralserver-external
 ARG DIST=jammy-snapshot
 ARG REPO=https://artifactory.niis.org/xroad-snapshot-deb
-ARG REPO_KEY=https://artifactory.niis.org/api/gpg/key/public
 ARG COMPONENT=main
 
-ADD ["$REPO_KEY","/tmp/repokey.gpg"]
+ADD ["https://artifactory.niis.org/api/gpg/key/public","/tmp/repokey.gpg"]
 ADD ["${REPO}/dists/${DIST}/Release","/tmp/Release"]
 RUN echo "deb $REPO $DIST $COMPONENT" >/etc/apt/sources.list.d/xroad.list \
   && apt-key add '/tmp/repokey.gpg' \
@@ -61,6 +60,7 @@ RUN --mount=type=bind,source=build/packages,target=/tmp/packages \
   && rm -rf var/lib/apt/lists/*
 
 # Build final image
+ARG PACKAGE_SOURCE=external
 FROM centralserver-${PACKAGE_SOURCE} AS final
 
 RUN { nginx -s stop ||:; } \
@@ -82,8 +82,8 @@ RUN { nginx -s stop ||:; } \
   && rm -rf var/lib/apt/lists/*
 
 # Setup additional users
-ARG USER_PASSWD=secret
-RUN useradd xrd-sys && adduser xrd-sys xroad-system-administrator && sh -c "echo 'xrd-sys:$USER_PASSWD' | chpasswd"
+ARG USER_PASSWD
+RUN useradd xrd-sys && adduser xrd-sys xroad-system-administrator && sh -c "echo 'xrd-sys:${USER_PASSWD:-secret}' | chpasswd"
 
 COPY --chown=xroad:xroad Docker/centralserver/files/etc /etc/
 
