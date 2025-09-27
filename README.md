@@ -9,9 +9,9 @@ Hệ thống X-Road đơn giản được triển khai bằng Docker với 1 Sec
 - **Security Server**: Máy chủ bảo mật duy nhất (Port: 4001)
 - **Test CA**: Cơ quan chứng thực số thử nghiệm (Port: 8888)
 - **Information Systems**: Các dịch vụ thông tin
-  - REST API (Port: 8080)
-  - SOAP API (Port: 8081)
-  - OpenAPI (Port: 8082)
+  - REST API (Port: 8082)
+  - SOAP API (Port: 8083)
+  - OpenAPI (Port: 8084)
 - **Mailpit**: Mail server cho thông báo (Port: 8025)
 - **Nginx**: Reverse proxy với SSL/TLS (Port: 80/443)
 

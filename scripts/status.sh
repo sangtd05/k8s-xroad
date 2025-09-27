@@ -165,9 +165,9 @@ main() {
     check_service "cs" "Central Server" "4000" || all_healthy=false
     check_service "ss0" "Security Server" "4001" || all_healthy=false
     check_service "testca" "Test CA" "8888" || all_healthy=false
-    check_service "isrest" "REST API" "8080" || all_healthy=false
-    check_service "issoap" "SOAP API" "8081" || all_healthy=false
-    check_service "isopenapi" "OpenAPI" "8082" || all_healthy=false
+    check_service "isrest" "REST API" "8082" || all_healthy=false
+    check_service "issoap" "SOAP API" "8083" || all_healthy=false
+    check_service "isopenapi" "OpenAPI" "8084" || all_healthy=false
     check_service "mailpit" "Mailpit" "8025" || all_healthy=false
     check_service "nginx" "Nginx Proxy" "80/443" || all_healthy=false
     
@@ -178,9 +178,9 @@ main() {
     check_health "cs" "Central Server" "https://localhost:4000" || true
     check_health "ss0" "Security Server" "https://localhost:4001" || true
     check_health "testca" "Test CA" "http://localhost:8888/testca/certs" || true
-    check_health "isrest" "REST API" "http://localhost:8080/__admin/health" || true
-    check_health "issoap" "SOAP API" "http://localhost:8081/example-adapter/Endpoint?wsdl" || true
-    check_health "isopenapi" "OpenAPI" "http://localhost:8082/v3/api-docs" || true
+    check_health "isrest" "REST API" "http://localhost:8082/__admin/health" || true
+    check_health "issoap" "SOAP API" "http://localhost:8083/example-adapter/Endpoint?wsdl" || true
+    check_health "isopenapi" "OpenAPI" "http://localhost:8084/v3/api-docs" || true
     check_health "mailpit" "Mailpit" "http://localhost:8025" || true
     
     echo ""

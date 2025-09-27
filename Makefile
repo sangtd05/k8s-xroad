@@ -73,15 +73,15 @@ stop-clean: ## Dừng và dọn dẹp hoàn toàn
 # Khởi động lại hệ thống
 restart: ## Khởi động lại hệ thống
 	@echo "🔄 Khởi động lại hệ thống X-Road..."
-	@./scripts/restart.sh
+	@./scripts/start.sh --restart
 
 restart-clean: ## Khởi động lại với dọn dẹp
 	@echo "🔄 Khởi động lại với dọn dẹp hệ thống X-Road..."
-	@./scripts/restart.sh --clean
+	@./scripts/start.sh --restart-clean
 
 restart-init: ## Khởi động lại và khởi tạo
 	@echo "🔄 Khởi động lại và khởi tạo hệ thống X-Road..."
-	@./scripts/restart.sh --init
+	@./scripts/start.sh --restart-init
 
 # Kiểm tra trạng thái
 status: ## Kiểm tra trạng thái hệ thống
@@ -103,11 +103,11 @@ logs-service: ## Xem logs của service cụ thể (SERVICE=service_name)
 # Cấu hình
 init: ## Khởi tạo hệ thống
 	@echo "🔧 Khởi tạo hệ thống X-Road..."
-	@./scripts/init-system.sh
+	@./scripts/start.sh --init
 
 ssl: ## Tạo SSL certificate
 	@echo "🔐 Tạo SSL certificate..."
-	@./scripts/generate-ssl.sh
+	@./scripts/start.sh --ssl
 
 setup-remote: ## Cấu hình Security Server từ xa
 	@echo "🌐 Cấu hình Security Server từ xa..."
@@ -183,9 +183,9 @@ info: ## Hiển thị thông tin hệ thống
 	@echo "  • Mailpit:            https://localhost:8025"
 	@echo ""
 	@echo "🔌 API Endpoints:"
-	@echo "  • REST API:           http://localhost:8080"
-	@echo "  • SOAP API:           http://localhost:8081"
-	@echo "  • OpenAPI:            http://localhost:8082"
+	@echo "  • REST API:           http://localhost:8082"
+	@echo "  • SOAP API:           http://localhost:8083"
+	@echo "  • OpenAPI:            http://localhost:8084"
 	@echo ""
 	@echo "🔐 Default Credentials:"
 	@echo "  • Username: xrd"
