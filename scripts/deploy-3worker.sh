@@ -138,15 +138,43 @@ print_success "Namespace '$NAMESPACE' is ready"
 # Note: We download charts directly from GitHub, no need to add Helm repositories
 print_status "Using direct chart downloads from GitHub (no Helm repositories needed)"
 
-# Add PostgreSQL Operator Helm repository
-print_status "Adding PostgreSQL Operator Helm repository..."
-helm repo add postgres-operator-charts https://opensource.zalando.com/postgres-operator/charts/postgres-operator
-helm repo update
-print_success "PostgreSQL Operator Helm repository added and updated"
+# Download PostgreSQL Operator charts from GitHub (skip if already exists)
+print_status "Checking PostgreSQL Operator charts..."
+cd ../helm/xroad
+
+# Create charts directory if it doesn't exist
+mkdir -p charts
+
+# Check if charts already exist
+if [ -f "charts/postgres-operator-1.14.0.tgz" ] && [ -f "charts/postgres-operator-ui-1.14.0.tgz" ]; then
+    print_success "Charts already exist, skipping download"
+else
+    print_status "Downloading PostgreSQL Operator charts from GitHub..."
+    
+    # Download postgres-operator chart
+    if [ ! -f "charts/postgres-operator-1.14.0.tgz" ]; then
+        print_status "Downloading postgres-operator chart..."
+        curl -L -o charts/postgres-operator-1.14.0.tgz "https://github.com/zalando/postgres-operator/raw/master/charts/postgres-operator/postgres-operator-1.14.0.tgz" || {
+            print_error "Failed to download postgres-operator chart"
+            exit 1
+        }
+    fi
+
+    # Download postgres-operator-ui chart
+    if [ ! -f "charts/postgres-operator-ui-1.14.0.tgz" ]; then
+        print_status "Downloading postgres-operator-ui chart..."
+        curl -L -o charts/postgres-operator-ui-1.14.0.tgz "https://github.com/zalando/postgres-operator/raw/master/charts/postgres-operator-ui/postgres-operator-ui-1.14.0.tgz" || {
+            print_error "Failed to download postgres-operator-ui chart"
+            exit 1
+        }
+    fi
+
+    print_success "Charts downloaded successfully from GitHub"
+fi
 
 # Install PostgreSQL Operator
 print_status "Installing PostgreSQL Operator..."
-helm upgrade --install postgres-operator postgres-operator-charts/postgres-operator \
+helm upgrade --install postgres-operator charts/postgres-operator-1.14.0.tgz \
     --namespace xroad \
     --wait \
     --timeout 10m || {
@@ -154,7 +182,17 @@ helm upgrade --install postgres-operator postgres-operator-charts/postgres-opera
     exit 1
 }
 
-print_success "PostgreSQL Operator installed successfully"
+# Install PostgreSQL Operator UI
+print_status "Installing PostgreSQL Operator UI..."
+helm upgrade --install postgres-operator-ui charts/postgres-operator-ui-1.14.0.tgz \
+    --namespace xroad \
+    --wait \
+    --timeout 10m || {
+    print_error "Failed to install PostgreSQL Operator UI"
+    exit 1
+}
+
+print_success "PostgreSQL Operator and UI installed successfully"
 
 # Wait for CRDs to be created
 print_status "Waiting for PostgreSQL Operator CRDs to be created..."
@@ -172,6 +210,14 @@ kubectl get crd | grep postgresql || {
 }
 
 print_success "PostgreSQL CRDs are ready"
+
+# Create PostgreSQL credentials secret
+print_status "Creating PostgreSQL credentials secret..."
+kubectl create secret generic xroad-postgresql-credentials \
+  --from-literal=username=xroad \
+  --from-literal=password=xroad123 \
+  -n xroad --dry-run=client -o yaml | kubectl apply -f -
+print_success "PostgreSQL credentials secret created"
 
 cd ../../scripts
 
