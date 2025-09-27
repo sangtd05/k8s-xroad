@@ -165,6 +165,29 @@ curl -L -o charts/postgres-operator-ui-1.14.0.tgz "https://github.com/zalando/po
 
 print_success "Charts downloaded successfully from GitHub"
 
+# Install PostgreSQL Operator first
+print_status "Installing PostgreSQL Operator..."
+helm upgrade --install postgres-operator charts/postgres-operator-1.14.0.tgz \
+    --namespace xroad \
+    --create-namespace \
+    --wait \
+    --timeout 10m || {
+    print_error "Failed to install PostgreSQL Operator"
+    exit 1
+}
+
+# Install PostgreSQL Operator UI
+print_status "Installing PostgreSQL Operator UI..."
+helm upgrade --install postgres-operator-ui charts/postgres-operator-ui-1.14.0.tgz \
+    --namespace xroad \
+    --wait \
+    --timeout 10m || {
+    print_error "Failed to install PostgreSQL Operator UI"
+    exit 1
+}
+
+print_success "PostgreSQL Operator and UI installed successfully"
+
 cd ../../scripts
 
 # Prepare Helm command
