@@ -138,87 +138,42 @@ print_success "Namespace '$NAMESPACE' is ready"
 # Note: We download charts directly from GitHub, no need to add Helm repositories
 print_status "Using direct chart downloads from GitHub (no Helm repositories needed)"
 
-# Download charts directly from GitHub (skip if already exists)
-print_status "Checking PostgreSQL Operator charts..."
-cd ../helm/xroad
+# Add Patroni Helm repository
+print_status "Adding Patroni Helm repository..."
+helm repo add patroni https://charts.zalando.org
+helm repo update
+print_success "Patroni Helm repository added and updated"
 
-# Create charts directory if it doesn't exist
-mkdir -p charts
-
-# Check if charts already exist
-if [ -f "charts/postgres-operator-1.14.0.tgz" ] && [ -f "charts/postgres-operator-ui-1.14.0.tgz" ]; then
-    print_success "Charts already exist, skipping download"
-else
-    print_status "Downloading PostgreSQL Operator charts from GitHub..."
-    
-    # Download postgres-operator chart
-    if [ ! -f "charts/postgres-operator-1.14.0.tgz" ]; then
-        print_status "Downloading postgres-operator chart..."
-        curl -L -o charts/postgres-operator-1.14.0.tgz "https://github.com/zalando/postgres-operator/raw/master/charts/postgres-operator/postgres-operator-1.14.0.tgz" || {
-            print_error "Failed to download postgres-operator chart"
-            exit 1
-        }
-    fi
-
-    # Download postgres-operator-ui chart
-    if [ ! -f "charts/postgres-operator-ui-1.14.0.tgz" ]; then
-        print_status "Downloading postgres-operator-ui chart..."
-        curl -L -o charts/postgres-operator-ui-1.14.0.tgz "https://github.com/zalando/postgres-operator/raw/master/charts/postgres-operator-ui/postgres-operator-ui-1.14.0.tgz" || {
-            print_error "Failed to download postgres-operator-ui chart"
-            exit 1
-        }
-    fi
-
-    print_success "Charts downloaded successfully from GitHub"
-fi
-
-# Install PostgreSQL Operator in separate namespace
-print_status "Installing PostgreSQL Operator in 'postgres-operator' namespace..."
-helm upgrade --install postgres-operator charts/postgres-operator-1.14.0.tgz \
-    --namespace postgres-operator \
-    --create-namespace \
+# Install Patroni PostgreSQL HA
+print_status "Installing Patroni PostgreSQL HA with 3 replicas..."
+helm upgrade --install postgres-ha patroni/patroni \
+    --namespace xroad \
+    --set replicaCount=3 \
+    --set persistence.enabled=true \
+    --set persistence.size=20Gi \
+    --set persistence.storageClass="" \
+    --set postgresql.resources.requests.cpu=500m \
+    --set postgresql.resources.requests.memory=1Gi \
+    --set postgresql.resources.limits.cpu=1000m \
+    --set postgresql.resources.limits.memory=2Gi \
+    --set postgresql.parameters.max_connections=200 \
+    --set postgresql.parameters.shared_preload_libraries=pg_stat_statements \
+    --set postgresql.parameters.pg_stat_statements.max=10000 \
+    --set postgresql.parameters.pg_stat_statements.track=all \
+    --set postgresql.database=xroad \
+    --set postgresql.username=xroad \
+    --set postgresql.password=xroad123 \
+    --set affinity.podAntiAffinity.requiredDuringSchedulingIgnoredDuringExecution[0].labelSelector.matchExpressions[0].key=app.kubernetes.io/name \
+    --set affinity.podAntiAffinity.requiredDuringSchedulingIgnoredDuringExecution[0].labelSelector.matchExpressions[0].operator=In \
+    --set affinity.podAntiAffinity.requiredDuringSchedulingIgnoredDuringExecution[0].labelSelector.matchExpressions[0].values[0]=patroni \
+    --set affinity.podAntiAffinity.requiredDuringSchedulingIgnoredDuringExecution[0].topologyKey=kubernetes.io/hostname \
     --wait \
-    --timeout 10m || {
-    print_error "Failed to install PostgreSQL Operator"
+    --timeout 15m || {
+    print_error "Failed to install Patroni PostgreSQL HA"
     exit 1
 }
 
-# Install PostgreSQL Operator UI
-print_status "Installing PostgreSQL Operator UI..."
-helm upgrade --install postgres-operator-ui charts/postgres-operator-ui-1.14.0.tgz \
-    --namespace postgres-operator \
-    --wait \
-    --timeout 10m || {
-    print_error "Failed to install PostgreSQL Operator UI"
-    exit 1
-}
-
-print_success "PostgreSQL Operator and UI installed successfully"
-
-# Wait for CRDs to be created
-print_status "Waiting for PostgreSQL Operator CRDs to be created..."
-sleep 30
-
-# Check if CRDs exist
-print_status "Checking for PostgreSQL CRDs..."
-kubectl get crd | grep postgresql || {
-    print_warning "CRDs not found, waiting longer..."
-    sleep 60
-    kubectl get crd | grep postgresql || {
-        print_error "PostgreSQL CRDs still not found after waiting"
-        print_status "Trying to apply CRDs manually..."
-        
-        # Apply CRDs manually
-        kubectl apply -f https://raw.githubusercontent.com/cloudnative-pg/cloudnative-pg/main/releases/cnpg-1.14.0.yaml || {
-            print_error "Failed to apply CRDs manually"
-            exit 1
-        }
-        
-        print_success "CRDs applied manually"
-    }
-}
-
-print_success "PostgreSQL CRDs are ready"
+print_success "Patroni PostgreSQL HA installed successfully"
 
 cd ../../scripts
 

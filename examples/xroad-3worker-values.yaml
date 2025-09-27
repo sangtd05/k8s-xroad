@@ -80,46 +80,22 @@ securityServer:
     etcVolumeSize: 100Mi
     libVolumeSize: 1000Mi
 
-# PostgreSQL Operator configuration
-# Disabled because we install PostgreSQL Operator separately in postgres-operator namespace
-postgresOperator:
-  enabled: false
-
-postgresOperatorUI:
-  enabled: false
-
-# PostgreSQL cluster configuration - Deploy on worker-1 (same as Central Server)
+# PostgreSQL configuration - Using Patroni HA
+# Patroni is installed separately with 3 replicas across all workers
 postgresql:
+  enabled: false # Disabled because we use Patroni HA
+
+# Patroni PostgreSQL HA configuration
+patroni:
   enabled: true
+  service:
+    name: "postgres-ha"
+    port: 5432
   database:
     name: "xroad"
     user: "xroad"
     password: "xroad123"
-
-  # Deploy on worker-1 for better performance with Central Server
-  nodeSelector:
-    kubernetes.io/hostname: k8s-worker-1
-
-  persistence:
-    enabled: true
-    storageClass: ""
-    size: 20Gi
-
-  resources:
-    limits:
-      cpu: 1000m
-      memory: 2000Mi
-    requests:
-      cpu: 250m
-      memory: 1000Mi
-
-  backup:
-    enabled: false
-    s3:
-      bucket: ""
-      region: ""
-      accessKey: ""
-      secretKey: ""
+  connectionString: "postgresql://xroad:xroad123@postgres-ha.xroad.svc.cluster.local:5432/xroad"
 
 # Network policies
 networkPolicy:
