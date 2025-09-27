@@ -52,6 +52,7 @@ show_usage() {
     echo "  restore                Restore from backup"
     echo "  postgres               Manage PostgreSQL cluster"
     echo "  test-secret            Test PostgreSQL secret name"
+    echo "  create-pvs             Create PersistentVolumes for PostgreSQL"
     echo "  help                   Show this help message"
     echo ""
     echo "Examples:"
@@ -139,6 +140,11 @@ main() {
         "test-secret")
             check_script "test-postgres-secret.sh"
             "$SCRIPTS_DIR/test-postgres-secret.sh"
+            ;;
+        "create-pvs")
+            shift
+            check_script "create-postgres-pvs.sh"
+            "$SCRIPTS_DIR/create-postgres-pvs.sh" "$@"
             ;;
         "help"|"--help"|"-h")
             show_usage
