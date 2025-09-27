@@ -80,22 +80,59 @@ securityServer:
     etcVolumeSize: 100Mi
     libVolumeSize: 1000Mi
 
-# PostgreSQL configuration - Using Patroni HA
-# Patroni is installed separately with 3 replicas across all workers
-postgresql:
-  enabled: false # Disabled because we use Patroni HA
-
-# Patroni PostgreSQL HA configuration
-patroni:
+# PostgreSQL Operator configuration
+postgresOperator:
   enabled: true
-  service:
-    name: "postgres-ha"
-    port: 5432
+
+postgresOperatorUI:
+  enabled: false # Disabled to avoid conflicts
+
+# PostgreSQL cluster configuration with Patroni HA
+postgresql:
+  enabled: true
   database:
     name: "xroad"
     user: "xroad"
     password: "xroad123"
-  connectionString: "postgresql://xroad:xroad123@postgres-ha.xroad.svc.cluster.local:5432/xroad"
+
+  # Deploy 3 replicas across all workers for HA
+  numberOfInstances: 3
+
+  # Anti-affinity to ensure each replica on different worker
+  affinity:
+    podAntiAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        - labelSelector:
+            matchExpressions:
+              - key: app.kubernetes.io/name
+                operator: In
+                values:
+                  - postgres-operator
+          topologyKey: kubernetes.io/hostname
+
+  persistence:
+    enabled: true
+    storageClass: ""
+    size: 20Gi
+
+  resources:
+    limits:
+      cpu: 1000m
+      memory: 2000Mi
+    requests:
+      cpu: 250m
+      memory: 1000Mi
+
+  postgresql:
+    version: "15"
+    parameters:
+      max_connections: "200"
+      shared_preload_libraries: "pg_stat_statements"
+      pg_stat_statements.max: "10000"
+      pg_stat_statements.track: "all"
+
+  backup:
+    enabled: false
 
 # Network policies
 networkPolicy:

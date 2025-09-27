@@ -138,42 +138,40 @@ print_success "Namespace '$NAMESPACE' is ready"
 # Note: We download charts directly from GitHub, no need to add Helm repositories
 print_status "Using direct chart downloads from GitHub (no Helm repositories needed)"
 
-# Add Patroni Helm repository
-print_status "Adding Patroni Helm repository..."
-helm repo add patroni https://charts.zalando.org
+# Add PostgreSQL Operator Helm repository
+print_status "Adding PostgreSQL Operator Helm repository..."
+helm repo add postgres-operator-charts https://opensource.zalando.com/postgres-operator/charts/postgres-operator
 helm repo update
-print_success "Patroni Helm repository added and updated"
+print_success "PostgreSQL Operator Helm repository added and updated"
 
-# Install Patroni PostgreSQL HA
-print_status "Installing Patroni PostgreSQL HA with 3 replicas..."
-helm upgrade --install postgres-ha patroni/patroni \
+# Install PostgreSQL Operator
+print_status "Installing PostgreSQL Operator..."
+helm upgrade --install postgres-operator postgres-operator-charts/postgres-operator \
     --namespace xroad \
-    --set replicaCount=3 \
-    --set persistence.enabled=true \
-    --set persistence.size=20Gi \
-    --set persistence.storageClass="" \
-    --set postgresql.resources.requests.cpu=500m \
-    --set postgresql.resources.requests.memory=1Gi \
-    --set postgresql.resources.limits.cpu=1000m \
-    --set postgresql.resources.limits.memory=2Gi \
-    --set postgresql.parameters.max_connections=200 \
-    --set postgresql.parameters.shared_preload_libraries=pg_stat_statements \
-    --set postgresql.parameters.pg_stat_statements.max=10000 \
-    --set postgresql.parameters.pg_stat_statements.track=all \
-    --set postgresql.database=xroad \
-    --set postgresql.username=xroad \
-    --set postgresql.password=xroad123 \
-    --set affinity.podAntiAffinity.requiredDuringSchedulingIgnoredDuringExecution[0].labelSelector.matchExpressions[0].key=app.kubernetes.io/name \
-    --set affinity.podAntiAffinity.requiredDuringSchedulingIgnoredDuringExecution[0].labelSelector.matchExpressions[0].operator=In \
-    --set affinity.podAntiAffinity.requiredDuringSchedulingIgnoredDuringExecution[0].labelSelector.matchExpressions[0].values[0]=patroni \
-    --set affinity.podAntiAffinity.requiredDuringSchedulingIgnoredDuringExecution[0].topologyKey=kubernetes.io/hostname \
     --wait \
-    --timeout 15m || {
-    print_error "Failed to install Patroni PostgreSQL HA"
+    --timeout 10m || {
+    print_error "Failed to install PostgreSQL Operator"
     exit 1
 }
 
-print_success "Patroni PostgreSQL HA installed successfully"
+print_success "PostgreSQL Operator installed successfully"
+
+# Wait for CRDs to be created
+print_status "Waiting for PostgreSQL Operator CRDs to be created..."
+sleep 30
+
+# Check if CRDs exist
+print_status "Checking for PostgreSQL CRDs..."
+kubectl get crd | grep postgresql || {
+    print_warning "CRDs not found, waiting longer..."
+    sleep 60
+    kubectl get crd | grep postgresql || {
+        print_error "PostgreSQL CRDs still not found after waiting"
+        exit 1
+    }
+}
+
+print_success "PostgreSQL CRDs are ready"
 
 cd ../../scripts
 
