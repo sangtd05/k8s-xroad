@@ -142,8 +142,12 @@ helm repo add postgres-operator-ui-charts https://opensource.zalando.com/postgre
 helm repo update
 print_success "Helm repositories added and updated"
 
-# Note: PostgreSQL Operator will be deployed as dependency of X-Road chart
-print_status "PostgreSQL Operator will be deployed as dependency of X-Road chart"
+# Build Helm chart dependencies
+print_status "Building Helm chart dependencies..."
+cd ../helm/xroad
+helm dependency build
+cd ../../scripts
+print_success "Helm chart dependencies built successfully"
 
 # Prepare Helm command
 HELM_CMD="helm"
