@@ -217,7 +217,22 @@ if [ -f "../examples/xroad-postgres-ha.yaml" ]; then
     
     # Get PostgreSQL credentials from secret created by operator
     print_status "Getting PostgreSQL credentials from operator-created secret..."
-    POSTGRES_PASSWORD=$(kubectl get secret xroad-postgres-ha.credentials.xroad -n xroad -o jsonpath='{.data.password}' | base64 -d 2>/dev/null || echo "xroad123")
+    # Try different possible secret names
+    POSTGRES_PASSWORD=""
+    for secret_name in "xroad-postgres-ha.credentials.xroad" "xroad-postgres-ha.xroad.credentials" "xroad-postgres-ha-credentials"; do
+        if kubectl get secret "$secret_name" -n xroad &> /dev/null; then
+            POSTGRES_PASSWORD=$(kubectl get secret "$secret_name" -n xroad -o jsonpath='{.data.password}' | base64 -d 2>/dev/null || echo "")
+            if [ -n "$POSTGRES_PASSWORD" ]; then
+                print_success "Found secret: $secret_name"
+                break
+            fi
+        fi
+    done
+    
+    if [ -z "$POSTGRES_PASSWORD" ]; then
+        print_warning "Could not retrieve PostgreSQL password from secrets, using default"
+        POSTGRES_PASSWORD="xroad123"
+    fi
     print_status "PostgreSQL password retrieved: ${POSTGRES_PASSWORD:0:4}****"
     
 else
@@ -230,7 +245,7 @@ else
     print_success "PostgreSQL credentials secret created"
 fi
 
-cd ../scripts
+# Stay in scripts directory
 
 # Prepare Helm command
 HELM_CMD="helm"

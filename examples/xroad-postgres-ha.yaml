@@ -55,5 +55,4 @@ spec:
   enableConnectionPooler: true
   connectionPooler:
     numberOfInstances: 2
-    maxConnections: 100
     mode: "transaction"
