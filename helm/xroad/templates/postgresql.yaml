@@ -1,0 +1,74 @@
+{{- if .Values.postgresql.enabled }}
+apiVersion: postgresql.cnpg.io/v1
+kind: Cluster
+metadata:
+  name: {{ include "xroad.postgresql.fullname" . }}
+  labels:
+    {{- include "xroad.labels" . | nindent 4 }}
+spec:
+  instances: 3
+  
+  postgresql:
+    parameters:
+      max_connections: "200"
+      shared_preload_libraries: "pg_stat_statements"
+      pg_stat_statements.max: "10000"
+      pg_stat_statements.track: "all"
+  
+  bootstrap:
+    initdb:
+      database: {{ .Values.postgresql.database.name }}
+      owner: {{ .Values.postgresql.database.user }}
+      secret:
+        name: {{ include "xroad.postgresql.fullname" . }}-credentials
+  
+  storage:
+    size: {{ .Values.postgresql.persistence.size }}
+    {{- if .Values.postgresql.persistence.storageClass }}
+    storageClass: {{ .Values.postgresql.persistence.storageClass }}
+    {{- end }}
+  
+  resources:
+    {{- toYaml .Values.postgresql.resources | nindent 4 }}
+  
+  {{- if .Values.postgresql.backup.enabled }}
+  backup:
+    barmanObjectStore:
+      destinationPath: "s3://{{ .Values.postgresql.backup.s3.bucket }}/{{ include "xroad.postgresql.fullname" . }}"
+      s3Credentials:
+        accessKeyId:
+          name: {{ include "xroad.postgresql.fullname" . }}-backup-credentials
+          key: ACCESS_KEY_ID
+        secretAccessKey:
+          name: {{ include "xroad.postgresql.fullname" . }}-backup-credentials
+          key: SECRET_ACCESS_KEY
+      wal:
+        retention: "7d"
+      data:
+        retention: "30d"
+  {{- end }}
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: {{ include "xroad.postgresql.fullname" . }}-credentials
+  labels:
+    {{- include "xroad.labels" . | nindent 4 }}
+type: Opaque
+data:
+  username: {{ .Values.postgresql.database.user | b64enc | quote }}
+  password: {{ .Values.postgresql.database.password | b64enc | quote }}
+{{- if .Values.postgresql.backup.enabled }}
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: {{ include "xroad.postgresql.fullname" . }}-backup-credentials
+  labels:
+    {{- include "xroad.labels" . | nindent 4 }}
+type: Opaque
+data:
+  ACCESS_KEY_ID: {{ .Values.postgresql.backup.s3.accessKey | b64enc | quote }}
+  SECRET_ACCESS_KEY: {{ .Values.postgresql.backup.s3.secretKey | b64enc | quote }}
+{{- end }}
+{{- end }}

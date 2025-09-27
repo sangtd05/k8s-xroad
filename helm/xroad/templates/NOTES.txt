@@ -1,0 +1,65 @@
+1. X-Road has been deployed successfully!
+
+2. Components deployed:
+{{- if .Values.centralServer.enabled }}
+   ✓ Central Server
+{{- end }}
+{{- if .Values.securityServer.enabled }}
+   ✓ Security Server Cluster (Primary + {{ .Values.securityServer.secondaryReplicaCount }} Secondary)
+{{- end }}
+{{- if .Values.postgresql.enabled }}
+   ✓ PostgreSQL Cluster
+{{- end }}
+
+3. Access the services:
+
+{{- if .Values.centralServer.enabled }}
+   Central Server Admin Interface:
+   {{- if contains "NodePort" .Values.centralServer.service.type }}
+   export NODE_IP=$(kubectl get nodes -o jsonpath="{.items[0].status.addresses[0].address}")
+   echo "https://$NODE_IP:{{ .Values.centralServer.service.adminNodePort }}"
+   {{- else if contains "LoadBalancer" .Values.centralServer.service.type }}
+   export SERVICE_IP=$(kubectl get svc {{ include "xroad.centralServer.fullname" . }} -o jsonpath="{.status.loadBalancer.ingress[0].ip}")
+   echo "https://$SERVICE_IP:{{ .Values.centralServer.ports.admin }}"
+   {{- else }}
+   kubectl port-forward svc/{{ include "xroad.centralServer.fullname" . }} {{ .Values.centralServer.ports.admin }}:{{ .Values.centralServer.ports.admin }}
+   echo "https://localhost:{{ .Values.centralServer.ports.admin }}"
+   {{- end }}
+{{- end }}
+
+{{- if .Values.securityServer.enabled }}
+   Security Server Admin Interface:
+   {{- if contains "NodePort" .Values.securityServer.service.type }}
+   export NODE_IP=$(kubectl get nodes -o jsonpath="{.items[0].status.addresses[0].address}")
+   echo "https://$NODE_IP:{{ .Values.securityServer.service.adminNodePort }}"
+   {{- else if contains "LoadBalancer" .Values.securityServer.service.type }}
+   export SERVICE_IP=$(kubectl get svc {{ include "xroad.securityServer.fullname" . }} -o jsonpath="{.status.loadBalancer.ingress[0].ip}")
+   echo "https://$SERVICE_IP:4000"
+   {{- else }}
+   kubectl port-forward svc/{{ include "xroad.securityServer.fullname" . }} 4000:4000
+   echo "https://localhost:4000"
+   {{- end }}
+{{- end }}
+
+4. Check the status of all components:
+   kubectl get pods -l app.kubernetes.io/instance={{ .Release.Name }}
+
+5. View logs:
+   # Central Server logs
+   {{- if .Values.centralServer.enabled }}
+   kubectl logs -l app.kubernetes.io/name={{ include "xroad.name" . }}-central-server -f
+   {{- end }}
+   
+   # Security Server logs
+   {{- if .Values.securityServer.enabled }}
+   kubectl logs -l app.kubernetes.io/name={{ include "xroad.name" . }}-security-server -f
+   {{- end }}
+
+6. For more information about X-Road, visit:
+   https://docs.x-road.global
+
+7. Next steps:
+   - Configure the Central Server through the admin interface
+   - Register Security Servers with the Central Server
+   - Configure Security Server services and clients
+   - Test the X-Road message exchange

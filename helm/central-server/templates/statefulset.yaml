@@ -1,0 +1,158 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: {{ include "central-server.fullname" . }}
+  labels:
+    {{- include "central-server.labels" . | nindent 4 }}
+spec:
+  serviceName: {{ include "central-server.fullname" . }}-headless
+  replicas: 1
+  selector:
+    matchLabels:
+      {{- include "central-server.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "central-server.selectorLabels" . | nindent 8 }}
+    spec:
+      {{- with .Values.podSecurityContext }}
+      securityContext:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      containers:
+      - name: central-server
+        image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+        imagePullPolicy: {{ .Values.image.pullPolicy }}
+        ports:
+        - name: admin
+          containerPort: {{ .Values.centralServer.adminPort }}
+          protocol: TCP
+        - name: management
+          containerPort: {{ .Values.centralServer.managementPort }}
+          protocol: TCP
+        - name: registration
+          containerPort: {{ .Values.centralServer.registrationPort }}
+          protocol: TCP
+        - name: postgres
+          containerPort: 5432
+          protocol: TCP
+        env:
+        - name: XROAD_TOKEN_PIN
+          valueFrom:
+            secretKeyRef:
+              name: {{ include "central-server.secretName" . }}
+              key: XROAD_TOKEN_PIN
+              optional: true
+        - name: XROAD_ADMIN_USER
+          valueFrom:
+            secretKeyRef:
+              name: {{ include "central-server.secretName" . }}
+              key: XROAD_ADMIN_USER
+              optional: true
+        - name: XROAD_ADMIN_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: {{ include "central-server.secretName" . }}
+              key: XROAD_ADMIN_PASSWORD
+              optional: true
+        {{- if .Values.database.external.enabled }}
+        - name: XROAD_DATABASE_HOST
+          value: {{ .Values.database.external.host | quote }}
+        - name: XROAD_DATABASE_PORT
+          value: {{ .Values.database.external.port | quote }}
+        - name: XROAD_DATABASE_NAME
+          value: {{ .Values.database.external.name | quote }}
+        - name: XROAD_DATABASE_USER
+          value: {{ .Values.database.external.user | quote }}
+        - name: XROAD_DATABASE_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: {{ .Values.database.external.secretName }}
+              key: password
+        {{- end }}
+        resources:
+          {{- toYaml .Values.resources | nindent 10 }}
+        volumeMounts:
+        - name: xroad-etc
+          mountPath: /etc/xroad
+        - name: xroad-lib
+          mountPath: /var/lib/xroad
+        - name: postgres-data
+          mountPath: /var/lib/postgresql/16/main
+        {{- if .Values.filesData }}
+        - name: files
+          mountPath: /etc/xroad/conf.d
+        {{- end }}
+        {{- with .Values.volumeMounts }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+        livenessProbe:
+          httpGet:
+            path: /
+            port: admin
+            scheme: HTTPS
+          initialDelaySeconds: 120
+          periodSeconds: 30
+          timeoutSeconds: 10
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /
+            port: admin
+            scheme: HTTPS
+          initialDelaySeconds: 60
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+      volumes:
+      {{- if .Values.filesData }}
+      - name: files
+        configMap:
+          name: {{ include "central-server.filesConfigMapName" . }}
+      {{- end }}
+      {{- with .Values.volumes }}
+      {{- . | nindent 6 }}
+      {{- end }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+  volumeClaimTemplates:
+  - metadata:
+      name: xroad-etc
+    spec:
+      accessModes: [ "ReadWriteOnce" ]
+      {{- if .Values.persistence.storageClass }}
+      storageClassName: {{ .Values.persistence.storageClass }}
+      {{- end }}
+      resources:
+        requests:
+          storage: {{ .Values.persistence.size }}
+  - metadata:
+      name: xroad-lib
+    spec:
+      accessModes: [ "ReadWriteOnce" ]
+      {{- if .Values.persistence.storageClass }}
+      storageClassName: {{ .Values.persistence.storageClass }}
+      {{- end }}
+      resources:
+        requests:
+          storage: {{ .Values.persistence.size }}
+  - metadata:
+      name: postgres-data
+    spec:
+      accessModes: [ "ReadWriteOnce" ]
+      {{- if .Values.persistence.storageClass }}
+      storageClassName: {{ .Values.persistence.storageClass }}
+      {{- end }}
+      resources:
+        requests:
+          storage: {{ .Values.persistence.size }}

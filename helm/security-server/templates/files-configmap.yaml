@@ -1,0 +1,11 @@
+{{- if .Values.filesData }}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "security-server.fullname" . }}-files
+  labels:
+    {{- include "security-server.labels" . | nindent 4 }}
+data:
+  {{- tpl .Values.filesData . | nindent 2 }}
+{{- end }}

@@ -1,0 +1,65 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "central-server.fullname" . }}
+  labels:
+    {{- include "central-server.labels" . | nindent 4 }}
+spec:
+  type: {{ .Values.service.type }}
+  ports:
+  - name: admin
+    port: {{ .Values.centralServer.adminPort }}
+    targetPort: admin
+    protocol: TCP
+    {{- if and (eq .Values.service.type "NodePort") .Values.service.adminNodePort }}
+    nodePort: {{ .Values.service.adminNodePort }}
+    {{- end }}
+  - name: management
+    port: {{ .Values.centralServer.managementPort }}
+    targetPort: management
+    protocol: TCP
+    {{- if and (eq .Values.service.type "NodePort") .Values.service.managementNodePort }}
+    nodePort: {{ .Values.service.managementNodePort }}
+    {{- end }}
+  - name: registration
+    port: {{ .Values.centralServer.registrationPort }}
+    targetPort: registration
+    protocol: TCP
+    {{- if and (eq .Values.service.type "NodePort") .Values.service.registrationNodePort }}
+    nodePort: {{ .Values.service.registrationNodePort }}
+    {{- end }}
+  - name: postgres
+    port: 5432
+    targetPort: postgres
+    protocol: TCP
+  selector:
+    {{- include "central-server.selectorLabels" . | nindent 4 }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "central-server.fullname" . }}-headless
+  labels:
+    {{- include "central-server.labels" . | nindent 4 }}
+spec:
+  type: ClusterIP
+  clusterIP: None
+  ports:
+  - name: admin
+    port: {{ .Values.centralServer.adminPort }}
+    targetPort: admin
+    protocol: TCP
+  - name: management
+    port: {{ .Values.centralServer.managementPort }}
+    targetPort: management
+    protocol: TCP
+  - name: registration
+    port: {{ .Values.centralServer.registrationPort }}
+    targetPort: registration
+    protocol: TCP
+  - name: postgres
+    port: 5432
+    targetPort: postgres
+    protocol: TCP
+  selector:
+    {{- include "central-server.selectorLabels" . | nindent 4 }}

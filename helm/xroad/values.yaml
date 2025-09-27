@@ -1,0 +1,174 @@
+---
+# Default values for xroad.
+
+# Global configuration
+global:
+  # Instance identifier for X-Road
+  instanceIdentifier: "EE"
+  # Namespace for all components
+  namespace: "xroad"
+
+# Central Server configuration
+centralServer:
+  enabled: true
+  image:
+    repository: xroad-centralserver
+    tag: "7.6.0"
+    pullPolicy: Always
+  
+  # Central server ports
+  ports:
+    admin: 4000
+    management: 4001
+    registration: 4002
+    postgres: 5432
+  
+  # Service configuration
+  service:
+    type: NodePort
+    adminNodePort: 30060
+    managementNodePort: 30061
+    registrationNodePort: 30062
+  
+  # Resources
+  resources:
+    limits:
+      cpu: 2000m
+      memory: 4000Mi
+    requests:
+      cpu: 500m
+      memory: 2000Mi
+  
+  # Persistence
+  persistence:
+    enabled: true
+    storageClass: ""
+    size: 10Gi
+  
+  # Environment variables
+  env:
+    tokenPIN: ""
+    adminUser: "xrd-sys"
+    adminPassword: "secret"
+
+# Security Server cluster configuration
+securityServer:
+  enabled: true
+  image:
+    repository: niis/xroad-security-server-sidecar
+    primaryTag: "7.6.1-primary-ee"
+    secondaryTag: "7.6.1-secondary-ee"
+    pullPolicy: Always
+  
+  # Number of secondary servers
+  secondaryReplicaCount: 2
+  
+  # Service configuration
+  service:
+    type: NodePort
+    adminNodePort: 30050
+    consumerNodePort: 30051
+    transportNodePort: 30052
+    ocspNodePort: 30053
+    healthNodePort: 30054
+  
+  # Resources
+  resources:
+    limits:
+      cpu: 2000m
+      memory: 4000Mi
+    requests:
+      cpu: 500m
+      memory: 2000Mi
+  
+  # Persistence
+  persistence:
+    etcVolumeSize: 100Mi
+    libVolumeSize: 1000Mi
+
+# PostgreSQL Operator configuration
+postgresOperator:
+  enabled: true
+  # Use default values from postgres-operator chart
+
+postgresOperatorUI:
+  enabled: true
+  # Use default values from postgres-operator-ui chart
+
+# PostgreSQL cluster configuration
+postgresql:
+  enabled: true
+  # Database configuration
+  database:
+    name: "xroad"
+    user: "xroad"
+    password: "xroad"
+  
+  # Storage configuration
+  persistence:
+    enabled: true
+    storageClass: ""
+    size: 20Gi
+  
+  # Resources
+  resources:
+    limits:
+      cpu: 1000m
+      memory: 2000Mi
+    requests:
+      cpu: 250m
+      memory: 1000Mi
+  
+  # Backup configuration
+  backup:
+    enabled: true
+    # S3 configuration for backups
+    s3:
+      bucket: ""
+      region: ""
+      accessKey: ""
+      secretKey: ""
+
+# Network policies
+networkPolicy:
+  enabled: false
+  adminAllowedIPRange: "0.0.0.0/0"
+
+# Secrets configuration
+secrets:
+  # Environment secret for X-Road
+  envSecretName: ""
+  envSecret:
+    tokenPIN: ""
+    adminUserName: "xrd-sys"
+    adminUserPassword: "secret"
+  
+  # SSH secret for configuration replication
+  sshSecretName: ""
+  sshSecret:
+    privateKey: ""
+    publicKey: ""
+
+# Ingress configuration
+ingress:
+  enabled: false
+  className: ""
+  annotations: {}
+  hosts:
+    - host: xroad.example.com
+      paths:
+        - path: /
+          pathType: Prefix
+          service:
+            name: central-server
+            port: 4000
+  tls: []
+
+# Monitoring configuration
+monitoring:
+  enabled: false
+  # Prometheus service monitor
+  serviceMonitor:
+    enabled: false
+    interval: 30s
+    scrapeTimeout: 10s

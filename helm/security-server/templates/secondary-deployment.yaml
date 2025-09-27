@@ -1,0 +1,101 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "security-server.fullname" . }}-secondary
+  labels:
+    {{- include "security-server-secondary.labels" . | nindent 4 }}
+spec:
+  selector:
+    matchLabels:
+      {{- include "security-server-secondary.selectorLabels" . | nindent 6 }}
+  replicas: {{ .Values.secondaryReplicaCount }}
+  template:
+    metadata:
+      labels:
+        {{- include "security-server-secondary.labels" . | nindent 8 }}
+    spec:
+      securityContext:
+        # Mounting secrets with xroad (999) group
+        fsGroup: 999
+      volumes:
+      - name: ssh-secret
+        secret:
+          {{- if .Values.sshSecretName }}
+          secretName: {{ .Values.sshSecretName }}
+          {{- else }}
+          secretName: {{ include "security-server.fullname" . }}-ssh
+          {{- end }}
+          items:
+          - key: private-key
+            path: id_rsa
+            mode: 0440
+          - key: public-key
+            path: id_rsa.pub
+            mode: 0644
+      - name: localtime
+        # Using correct timezone
+        hostPath:
+          path: '/etc/localtime'
+          type: File
+      {{- if .Values.volumesSecondary }}
+      {{- tpl .Values.volumesSecondary . | nindent 6 }}
+      {{- end }}
+      containers:
+      - name: security-server
+        image: "{{ .Values.image.repository }}:{{ .Values.image.secondaryTag }}"
+        imagePullPolicy: {{ .Values.image.pullPolicy }}
+        {{- with .Values.customCommandSecondary }}
+        command:
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+        resources:
+          {{- toYaml .Values.resources | nindent 10 }}
+        volumeMounts:
+        - name: ssh-secret
+          mountPath: "/etc/.ssh/"
+        - name: 'localtime'
+          mountPath: '/etc/localtime'
+        {{- with .Values.volumeMountsSecondary }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+        envFrom:
+        - secretRef:
+            {{- if .Values.envSecretName }}
+            name: {{ .Values.envSecretName }}
+            {{- else }}
+            name: {{ include "security-server.fullname" . }}-env
+            {{- end }}
+        env:
+        - name: XROAD_LOG_LEVEL
+          value: "INFO"
+        - name: XROAD_PRIMARY_DNS
+          # Always using primary-0 address
+          value: "{{ include "security-server.fullname" . }}-primary-0.{{ include "security-server.fullname" . }}-primary"
+        startupProbe:
+          httpGet:
+            path: /
+            port: 5588
+          periodSeconds: 10
+          failureThreshold: 60
+        readinessProbe:
+          httpGet:
+            path: /
+            port: 5588
+          periodSeconds: 10
+          timeoutSeconds: 6
+          successThreshold: 1
+          failureThreshold: 1
+        livenessProbe:
+          httpGet:
+            path: /
+            port: 5588
+          periodSeconds: 20
+          timeoutSeconds: 18
+          successThreshold: 1
+          failureThreshold: 6
+        ports:
+        - containerPort: 8443
+        - containerPort: 5500
+        - containerPort: 5577
+        - containerPort: 5588
