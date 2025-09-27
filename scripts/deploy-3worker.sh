@@ -188,6 +188,31 @@ helm upgrade --install postgres-operator-ui charts/postgres-operator-ui-1.14.0.t
 
 print_success "PostgreSQL Operator and UI installed successfully"
 
+# Wait for CRDs to be created
+print_status "Waiting for PostgreSQL Operator CRDs to be created..."
+sleep 30
+
+# Check if CRDs exist
+print_status "Checking for PostgreSQL CRDs..."
+kubectl get crd | grep postgresql || {
+    print_warning "CRDs not found, waiting longer..."
+    sleep 60
+    kubectl get crd | grep postgresql || {
+        print_error "PostgreSQL CRDs still not found after waiting"
+        print_status "Trying to apply CRDs manually..."
+        
+        # Apply CRDs manually
+        kubectl apply -f https://raw.githubusercontent.com/cloudnative-pg/cloudnative-pg/main/releases/cnpg-1.14.0.yaml || {
+            print_error "Failed to apply CRDs manually"
+            exit 1
+        }
+        
+        print_success "CRDs applied manually"
+    }
+}
+
+print_success "PostgreSQL CRDs are ready"
+
 cd ../../scripts
 
 # Prepare Helm command
