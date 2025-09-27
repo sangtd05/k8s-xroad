@@ -13,19 +13,19 @@ centralServer:
     repository: xroad-centralserver
     tag: "7.6.0"
     pullPolicy: Always
-  
+
   ports:
     admin: 4000
     management: 4001
     registration: 4002
     postgres: 5432
-  
+
   service:
     type: NodePort
     adminNodePort: 30060
     managementNodePort: 30061
     registrationNodePort: 30062
-  
+
   resources:
     limits:
       cpu: 2000m
@@ -33,16 +33,16 @@ centralServer:
     requests:
       cpu: 500m
       memory: 2000Mi
-  
+
   persistence:
     enabled: true
     storageClass: ""
     size: 10Gi
-  
+
   # Node affinity to deploy on worker-1
   nodeSelector:
     kubernetes.io/hostname: k8s-worker-1
-  
+
   env:
     tokenPIN: "1234"
     adminUser: "xrd-sys"
@@ -56,10 +56,10 @@ securityServer:
     primaryTag: "7.6.1-primary-ee"
     secondaryTag: "7.6.1-secondary-ee"
     pullPolicy: Always
-  
+
   # Deploy primary on worker-2, secondary on worker-3
   secondaryReplicaCount: 1
-  
+
   service:
     type: NodePort
     adminNodePort: 30050
@@ -67,7 +67,7 @@ securityServer:
     transportNodePort: 30052
     ocspNodePort: 30053
     healthNodePort: 30054
-  
+
   resources:
     limits:
       cpu: 2000m
@@ -75,17 +75,18 @@ securityServer:
     requests:
       cpu: 500m
       memory: 2000Mi
-  
+
   persistence:
     etcVolumeSize: 100Mi
     libVolumeSize: 1000Mi
 
 # PostgreSQL Operator configuration
+# Disabled because we install PostgreSQL Operator separately in postgres-operator namespace
 postgresOperator:
-  enabled: true
+  enabled: false
 
 postgresOperatorUI:
-  enabled: true
+  enabled: false
 
 # PostgreSQL cluster configuration - Deploy on worker-1 (same as Central Server)
 postgresql:
@@ -94,16 +95,16 @@ postgresql:
     name: "xroad"
     user: "xroad"
     password: "xroad123"
-  
+
   # Deploy on worker-1 for better performance with Central Server
   nodeSelector:
     kubernetes.io/hostname: k8s-worker-1
-  
+
   persistence:
     enabled: true
     storageClass: ""
     size: 20Gi
-  
+
   resources:
     limits:
       cpu: 1000m
@@ -111,7 +112,7 @@ postgresql:
     requests:
       cpu: 250m
       memory: 1000Mi
-  
+
   backup:
     enabled: false
     s3:
@@ -132,7 +133,7 @@ secrets:
     tokenPIN: "1234"
     adminUserName: "xrd-sys"
     adminUserPassword: "secret"
-  
+
   sshSecretName: ""
   sshSecret:
     privateKey: ""

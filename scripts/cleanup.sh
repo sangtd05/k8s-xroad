@@ -236,6 +236,49 @@ cleanup_postgres_operator() {
     print_success "PostgreSQL Operator cleanup completed"
 }
 
+# Function to cleanup cluster-scoped resources
+cleanup_cluster_resources() {
+    print_status "Cleaning up cluster-scoped resources..."
+    
+    # Delete ClusterRoles related to PostgreSQL
+    print_status "Deleting PostgreSQL ClusterRoles..."
+    kubectl get clusterrole | grep postgres | awk '{print $1}' | while read -r role; do
+        if [ -n "$role" ]; then
+            print_status "Deleting ClusterRole: $role"
+            kubectl delete clusterrole "$role" --ignore-not-found=true
+        fi
+    done
+    
+    # Delete ClusterRoleBindings related to PostgreSQL
+    print_status "Deleting PostgreSQL ClusterRoleBindings..."
+    kubectl get clusterrolebinding | grep postgres | awk '{print $1}' | while read -r binding; do
+        if [ -n "$binding" ]; then
+            print_status "Deleting ClusterRoleBinding: $binding"
+            kubectl delete clusterrolebinding "$binding" --ignore-not-found=true
+        fi
+    done
+    
+    # Delete PriorityClasses related to PostgreSQL
+    print_status "Deleting PostgreSQL PriorityClasses..."
+    kubectl get priorityclass | grep postgres | awk '{print $1}' | while read -r pc; do
+        if [ -n "$pc" ]; then
+            print_status "Deleting PriorityClass: $pc"
+            kubectl delete priorityclass "$pc" --ignore-not-found=true
+        fi
+    done
+    
+    # Delete CRDs related to PostgreSQL
+    print_status "Deleting PostgreSQL CRDs..."
+    kubectl get crd | grep postgres | awk '{print $1}' | while read -r crd; do
+        if [ -n "$crd" ]; then
+            print_status "Deleting CRD: $crd"
+            kubectl delete crd "$crd" --ignore-not-found=true
+        fi
+    done
+    
+    print_success "Cluster-scoped resources cleanup completed"
+}
+
 # Function to cleanup namespaces
 cleanup_namespaces() {
     if [ "$KEEP_NAMESPACE" = false ]; then
@@ -302,6 +345,9 @@ cleanup_xroad
 if [ "$CLEANUP_ALL" = true ]; then
     cleanup_postgres_operator
 fi
+
+# Cleanup cluster-scoped resources
+cleanup_cluster_resources
 
 # Cleanup namespaces
 cleanup_namespaces
