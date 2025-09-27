@@ -137,11 +137,8 @@ print_success "Namespace '$NAMESPACE' is ready"
 
 # Install PostgreSQL Operator
 print_status "Installing PostgreSQL Operator..."
-helm repo add postgres-operator https://opensource.zalando.com/postgres-operator/charts/postgres-operator
-helm repo add postgres-operator-ui-charts https://opensource.zalando.com/postgres-operator/charts/postgres-operator-ui
-helm repo update
-
-helm upgrade --install postgres-operator postgres-operator/postgres-operator \
+helm upgrade --install postgres-operator \
+    https://github.com/zalando/postgres-operator/blob/master/charts/postgres-operator/postgres-operator-1.14.0.tgz \
     --namespace xroad \
     --create-namespace \
     --wait \
@@ -152,7 +149,8 @@ helm upgrade --install postgres-operator postgres-operator/postgres-operator \
 
 # Install PostgreSQL Operator UI
 print_status "Installing PostgreSQL Operator UI..."
-helm upgrade --install postgres-operator-ui postgres-operator-ui-charts/postgres-operator-ui \
+helm upgrade --install postgres-operator-ui \
+    https://github.com/zalando/postgres-operator/blob/master/charts/postgres-operator-ui/postgres-operator-ui-1.14.0.tgz \
     --namespace xroad \
     --wait \
     --timeout 10m || {
