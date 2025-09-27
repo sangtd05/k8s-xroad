@@ -142,12 +142,30 @@ helm repo add postgres-operator-ui-charts https://opensource.zalando.com/postgre
 helm repo update
 print_success "Helm repositories added and updated"
 
-# Build Helm chart dependencies
-print_status "Building Helm chart dependencies..."
+# Download charts directly from GitHub
+print_status "Downloading PostgreSQL Operator charts from GitHub..."
 cd ../helm/xroad
-helm dependency build
+
+# Create charts directory if it doesn't exist
+mkdir -p charts
+
+# Download postgres-operator chart
+print_status "Downloading postgres-operator chart..."
+curl -L -o charts/postgres-operator-1.14.0.tgz "https://github.com/zalando/postgres-operator/raw/master/charts/postgres-operator/postgres-operator-1.14.0.tgz" || {
+    print_error "Failed to download postgres-operator chart"
+    exit 1
+}
+
+# Download postgres-operator-ui chart
+print_status "Downloading postgres-operator-ui chart..."
+curl -L -o charts/postgres-operator-ui-1.14.0.tgz "https://github.com/zalando/postgres-operator/raw/master/charts/postgres-operator-ui/postgres-operator-ui-1.14.0.tgz" || {
+    print_error "Failed to download postgres-operator-ui chart"
+    exit 1
+}
+
+print_success "Charts downloaded successfully from GitHub"
+
 cd ../../scripts
-print_success "Helm chart dependencies built successfully"
 
 # Prepare Helm command
 HELM_CMD="helm"
