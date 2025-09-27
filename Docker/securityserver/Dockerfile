@@ -1,7 +1,7 @@
 # syntax=docker/dockerfile:1
 
 # internal or external
-ARG PACKAGE_SOURCE
+ARG PACKAGE_SOURCE=external
 
 FROM ubuntu:24.04 AS base
 ENV DEBIAN_FRONTEND=noninteractive
@@ -68,7 +68,6 @@ RUN --mount=type=bind,source=build/packages,target=/tmp/packages \
     && apt-get remove -y -qq dpkg-dev && apt-get -qq clean && apt-get -qq autoremove \
     && rm -rf /var/lib/apt/lists/*
 
-ARG PACKAGE_SOURCE=external
 FROM securityserver-${PACKAGE_SOURCE} AS final
 RUN mkdir -p /root/etc/xroad \
     && cp -a /etc/xroad /root/etc/ \

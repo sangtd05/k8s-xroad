@@ -1,7 +1,7 @@
 # syntax=docker/dockerfile:1
 
 # internal or external
-ARG PACKAGE_SOURCE
+ARG PACKAGE_SOURCE=external
 
 FROM ubuntu:24.04 AS base
 ENV DEBIAN_FRONTEND=noninteractive
@@ -60,7 +60,6 @@ RUN --mount=type=bind,source=build/packages,target=/tmp/packages \
   && rm -rf var/lib/apt/lists/*
 
 # Build final image
-ARG PACKAGE_SOURCE=external
 FROM centralserver-${PACKAGE_SOURCE} AS final
 
 RUN { nginx -s stop ||:; } \
