@@ -135,47 +135,15 @@ print_status "Creating namespace '$NAMESPACE' if it doesn't exist..."
 kubectl create namespace "$NAMESPACE" --dry-run=client -o yaml | kubectl apply -f -
 print_success "Namespace '$NAMESPACE' is ready"
 
-# Note: We download charts directly from GitHub, no need to add Helm repositories
-print_status "Using direct chart downloads from GitHub (no Helm repositories needed)"
-
-# Download PostgreSQL Operator charts from GitHub (skip if already exists)
-print_status "Checking PostgreSQL Operator charts..."
-cd ../helm/xroad
-
-# Create charts directory if it doesn't exist
-mkdir -p charts
-
-# Check if charts already exist
-if [ -f "charts/postgres-operator-1.14.0.tgz" ] && [ -f "charts/postgres-operator-ui-1.14.0.tgz" ]; then
-    print_success "Charts already exist, skipping download"
-else
-    print_status "Downloading PostgreSQL Operator charts from GitHub..."
-    
-    # Download postgres-operator chart
-    if [ ! -f "charts/postgres-operator-1.14.0.tgz" ]; then
-        print_status "Downloading postgres-operator chart..."
-        curl -L -o charts/postgres-operator-1.14.0.tgz "https://github.com/zalando/postgres-operator/raw/master/charts/postgres-operator/postgres-operator-1.14.0.tgz" || {
-            print_error "Failed to download postgres-operator chart"
-            exit 1
-        }
-    fi
-
-    # Download postgres-operator-ui chart
-    if [ ! -f "charts/postgres-operator-ui-1.14.0.tgz" ]; then
-        print_status "Downloading postgres-operator-ui chart..."
-        curl -L -o charts/postgres-operator-ui-1.14.0.tgz "https://github.com/zalando/postgres-operator/raw/master/charts/postgres-operator-ui/postgres-operator-ui-1.14.0.tgz" || {
-            print_error "Failed to download postgres-operator-ui chart"
-            exit 1
-        }
-    fi
-
-    print_success "Charts downloaded successfully from GitHub"
-fi
-
 # Install PostgreSQL Operator
 print_status "Installing PostgreSQL Operator..."
-helm upgrade --install postgres-operator charts/postgres-operator-1.14.0.tgz \
+helm repo add postgres-operator https://opensource.zalando.com/postgres-operator/charts/postgres-operator
+helm repo add postgres-operator-ui-charts https://opensource.zalando.com/postgres-operator/charts/postgres-operator-ui
+helm repo update
+
+helm upgrade --install postgres-operator postgres-operator/postgres-operator \
     --namespace xroad \
+    --create-namespace \
     --wait \
     --timeout 10m || {
     print_error "Failed to install PostgreSQL Operator"
@@ -184,7 +152,7 @@ helm upgrade --install postgres-operator charts/postgres-operator-1.14.0.tgz \
 
 # Install PostgreSQL Operator UI
 print_status "Installing PostgreSQL Operator UI..."
-helm upgrade --install postgres-operator-ui charts/postgres-operator-ui-1.14.0.tgz \
+helm upgrade --install postgres-operator-ui postgres-operator-ui-charts/postgres-operator-ui \
     --namespace xroad \
     --wait \
     --timeout 10m || {
@@ -211,15 +179,40 @@ kubectl get crd | grep postgresql || {
 
 print_success "PostgreSQL CRDs are ready"
 
-# Create PostgreSQL credentials secret
-print_status "Creating PostgreSQL credentials secret..."
-kubectl create secret generic xroad-postgresql-credentials \
-  --from-literal=username=xroad \
-  --from-literal=password=xroad123 \
-  -n xroad --dry-run=client -o yaml | kubectl apply -f -
-print_success "PostgreSQL credentials secret created"
+# Create PostgreSQL HA cluster
+print_status "Creating PostgreSQL HA cluster..."
+if [ -f "../examples/xroad-postgres-ha.yaml" ]; then
+    kubectl apply -f ../examples/xroad-postgres-ha.yaml
+    print_success "PostgreSQL HA cluster manifest applied"
+    
+    # Wait for PostgreSQL cluster to be ready
+    print_status "Waiting for PostgreSQL cluster to be ready..."
+    kubectl wait --for=condition=Ready postgresql/xroad-postgres-ha -n xroad --timeout=300s || {
+        print_warning "PostgreSQL cluster not ready after 5 minutes, continuing anyway..."
+    }
+    
+    # Check PostgreSQL cluster status
+    print_status "PostgreSQL cluster status:"
+    kubectl get postgresql -n xroad
+    kubectl get pods -n xroad -l application=spilo
+    kubectl get svc -n xroad | grep xroad-postgres-ha
+    
+    # Get PostgreSQL credentials from secret created by operator
+    print_status "Getting PostgreSQL credentials from operator-created secret..."
+    POSTGRES_PASSWORD=$(kubectl get secret xroad-postgres-ha.credentials.xroad -n xroad -o jsonpath='{.data.password}' | base64 -d 2>/dev/null || echo "xroad123")
+    print_status "PostgreSQL password retrieved: ${POSTGRES_PASSWORD:0:4}****"
+    
+else
+    print_error "PostgreSQL HA manifest not found: ../examples/xroad-postgres-ha.yaml"
+    print_status "Creating basic PostgreSQL credentials secret as fallback..."
+    kubectl create secret generic xroad-postgresql-credentials \
+      --from-literal=username=xroad \
+      --from-literal=password=xroad123 \
+      -n xroad --dry-run=client -o yaml | kubectl apply -f -
+    print_success "PostgreSQL credentials secret created"
+fi
 
-cd ../../scripts
+cd ../scripts
 
 # Prepare Helm command
 HELM_CMD="helm"

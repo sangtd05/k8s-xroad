@@ -34,23 +34,25 @@ kubectl port-forward -n xroad svc/xroad-security-server 4000:4000
 ## 📁 Project Structure
 
 ```
-x-road-helm/
+k8s-xroad/
 ├── xroad.sh                    # Main management script
 ├── helm/                       # Helm charts
 │   └── xroad/                  # Main X-Road chart
 ├── scripts/                    # Management scripts
 │   ├── deploy-3worker.sh       # Deployment script
+│   ├── postgres-manager.sh     # PostgreSQL management
+│   ├── test-postgres-secret.sh # Secret testing
 │   ├── cleanup.sh              # Full cleanup
 │   ├── quick-cleanup.sh        # Quick cleanup
 │   ├── status-check.sh         # Status checker
 │   └── manage.sh               # Advanced management
 ├── docs/                       # Documentation
-│   └── 3WORKER_DEPLOYMENT.md   # Detailed deployment guide
-├── examples/                   # Example configurations
-│   ├── xroad-3worker-values.yaml
-│   └── docker-compose.yml
-└── docker/                     # Docker configurations
-    └── central-server/
+│   ├── 3WORKER_DEPLOYMENT.md   # Deployment guide
+│   ├── POSTGRESQL_HA_SETUP.md  # PostgreSQL HA setup
+│   └── POSTGRESQL_HA_FIXES.md  # PostgreSQL fixes
+└── examples/                   # Example configurations
+    ├── xroad-3worker-values.yaml
+    └── xroad-postgres-ha.yaml
 ```
 
 ## 🛠️ Management Commands
@@ -81,6 +83,12 @@ x-road-helm/
 
 # Scale Security Server
 ./xroad.sh scale 3
+
+# PostgreSQL management
+./xroad.sh postgres create    # Create PostgreSQL HA cluster
+./xroad.sh postgres status    # Check PostgreSQL status
+./xroad.sh postgres connect   # Connect to database
+./xroad.sh test-secret        # Test PostgreSQL secret
 
 # Create backup
 ./xroad.sh backup
@@ -224,6 +232,8 @@ kubectl top pods -n xroad
 ## 📚 Documentation
 
 - [Deployment Guide](docs/3WORKER_DEPLOYMENT.md) - Detailed deployment instructions
+- [PostgreSQL HA Setup](docs/POSTGRESQL_HA_SETUP.md) - PostgreSQL High Availability setup
+- [PostgreSQL Fixes](docs/POSTGRESQL_HA_FIXES.md) - Important fixes and optimizations
 - [X-Road Documentation](https://docs.x-road.global) - Official X-Road docs
 - [X-Road Community](https://x-road.global) - Community support
 

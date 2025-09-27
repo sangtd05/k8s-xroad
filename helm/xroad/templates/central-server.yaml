@@ -67,6 +67,24 @@ spec:
               name: {{ include "xroad.fullname" . }}-env
               key: XROAD_ADMIN_PASSWORD
               optional: true
+        {{- if .Values.externalDatabase.enabled }}
+        - name: XROAD_DATABASE_HOST
+          value: {{ .Values.externalDatabase.host | quote }}
+        - name: XROAD_DATABASE_PORT
+          value: {{ .Values.externalDatabase.port | quote }}
+        - name: XROAD_DATABASE_NAME
+          value: {{ .Values.externalDatabase.database | quote }}
+        - name: XROAD_DATABASE_USER
+          value: {{ .Values.externalDatabase.username | quote }}
+        - name: XROAD_DATABASE_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: xroad-postgres-ha.credentials.xroad
+              key: password
+              optional: true
+        - name: XROAD_DATABASE_SSL_MODE
+          value: {{ .Values.externalDatabase.sslMode | quote }}
+        {{- end }}
         resources:
           {{- toYaml .Values.centralServer.resources | nindent 10 }}
         volumeMounts:
@@ -74,8 +92,6 @@ spec:
           mountPath: /etc/xroad
         - name: xroad-lib
           mountPath: /var/lib/xroad
-        - name: postgres-data
-          mountPath: /var/lib/postgresql/16/main
         - name: config
           mountPath: /etc/xroad/conf.d/instance-identifier
           subPath: instance-identifier
@@ -114,16 +130,6 @@ spec:
           storage: {{ .Values.centralServer.persistence.size }}
   - metadata:
       name: xroad-lib
-    spec:
-      accessModes: [ "ReadWriteOnce" ]
-      {{- if .Values.centralServer.persistence.storageClass }}
-      storageClassName: {{ .Values.centralServer.persistence.storageClass }}
-      {{- end }}
-      resources:
-        requests:
-          storage: {{ .Values.centralServer.persistence.size }}
-  - metadata:
-      name: postgres-data
     spec:
       accessModes: [ "ReadWriteOnce" ]
       {{- if .Values.centralServer.persistence.storageClass }}

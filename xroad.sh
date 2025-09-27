@@ -50,6 +50,8 @@ show_usage() {
     echo "  scale                  Scale Security Server secondary nodes"
     echo "  backup                 Create backup"
     echo "  restore                Restore from backup"
+    echo "  postgres               Manage PostgreSQL cluster"
+    echo "  test-secret            Test PostgreSQL secret name"
     echo "  help                   Show this help message"
     echo ""
     echo "Examples:"
@@ -128,6 +130,15 @@ main() {
             shift
             check_script "manage.sh"
             "$SCRIPTS_DIR/manage.sh" restore "$@"
+            ;;
+        "postgres")
+            shift
+            check_script "postgres-manager.sh"
+            "$SCRIPTS_DIR/postgres-manager.sh" "$@"
+            ;;
+        "test-secret")
+            check_script "test-postgres-secret.sh"
+            "$SCRIPTS_DIR/test-postgres-secret.sh"
             ;;
         "help"|"--help"|"-h")
             show_usage

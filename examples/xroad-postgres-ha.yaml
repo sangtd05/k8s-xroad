@@ -1,0 +1,59 @@
+apiVersion: acid.zalan.do/v1
+kind: postgresql
+metadata:
+  name: xroad-postgres-ha
+  namespace: xroad
+  labels:
+    app: xroad-postgres-ha
+    component: database
+spec:
+  teamId: "xroad"
+  numberOfInstances: 3
+
+  volume:
+    size: 10Gi
+    storageClass: ""  # default storage class
+
+  users:
+    xroad:
+      - superuser
+      - createdb
+      - login
+
+  databases:
+    xroad: xroad
+
+  postgresql:
+    version: "15"
+    parameters:
+      log_statement: "all"
+      log_min_duration_statement: "1000"
+      log_checkpoints: "on"
+      log_connections: "on"
+      log_disconnections: "on"
+      log_lock_waits: "on"
+      log_temp_files: "0"
+      log_autovacuum_min_duration: "0"
+      log_error_verbosity: "default"
+      log_line_prefix: "%t [%p]: [%l-1] user=%u,db=%d,app=%a,client=%h "
+      log_timezone: "UTC"
+      timezone: "UTC"
+      shared_preload_libraries: "pg_stat_statements"
+      track_activity_query_size: 2048
+      track_counts: "on"
+      track_functions: "all"
+      track_io_timing: "on"
+
+  resources:
+    requests:
+      cpu: 250m
+      memory: 512Mi
+    limits:
+      cpu: 1000m
+      memory: 2Gi
+
+  enableConnectionPooler: true
+  connectionPooler:
+    numberOfInstances: 2
+    maxConnections: 100
+    mode: "transaction"

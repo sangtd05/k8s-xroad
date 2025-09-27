@@ -102,12 +102,21 @@ postgresql:
 # External database configuration for X-Road
 externalDatabase:
   enabled: true
-  host: "xroad-postgres-ha.xroad.svc.cluster.local"
+  host: "xroad-postgres-ha.xroad.svc.cluster.local"  # Master service (read/write)
   port: 5432
   database: "xroad"
   username: "xroad"
-  password: "xroad123"
+  password: "xroad123"  # Sẽ được override bởi operator-created secret
   sslMode: "prefer"
+  
+  # Connection pool settings
+  maxConnections: 100
+  connectionTimeout: 30
+  idleTimeout: 300
+  
+  # Replica service for read-only operations (optional)
+  replicaHost: "xroad-postgres-ha-repl.xroad.svc.cluster.local"
+  replicaPort: 5432
 
 # Network policies
 networkPolicy:

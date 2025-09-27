@@ -112,6 +112,24 @@ spec:
               name: {{ include "xroad.fullname" . }}-env
               key: XROAD_ADMIN_PASSWORD
               optional: true
+        {{- if .Values.externalDatabase.enabled }}
+        - name: XROAD_DATABASE_HOST
+          value: {{ .Values.externalDatabase.host | quote }}
+        - name: XROAD_DATABASE_PORT
+          value: {{ .Values.externalDatabase.port | quote }}
+        - name: XROAD_DATABASE_NAME
+          value: {{ .Values.externalDatabase.database | quote }}
+        - name: XROAD_DATABASE_USER
+          value: {{ .Values.externalDatabase.username | quote }}
+        - name: XROAD_DATABASE_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: xroad-postgres-ha.credentials.xroad
+              key: password
+              optional: true
+        - name: XROAD_DATABASE_SSL_MODE
+          value: {{ .Values.externalDatabase.sslMode | quote }}
+        {{- else }}
         - name: XROAD_DATABASE_HOST
           value: {{ include "xroad.postgresql.fullname" . }}
         - name: XROAD_DATABASE_PORT
@@ -125,6 +143,7 @@ spec:
             secretKeyRef:
               name: {{ include "xroad.postgresql.fullname" . }}-credentials
               key: password
+        {{- end }}
         resources:
           {{- toYaml .Values.securityServer.resources | nindent 10 }}
         volumeMounts:
@@ -225,6 +244,24 @@ spec:
               name: {{ include "xroad.fullname" . }}-env
               key: XROAD_ADMIN_PASSWORD
               optional: true
+        {{- if .Values.externalDatabase.enabled }}
+        - name: XROAD_DATABASE_HOST
+          value: {{ .Values.externalDatabase.host | quote }}
+        - name: XROAD_DATABASE_PORT
+          value: {{ .Values.externalDatabase.port | quote }}
+        - name: XROAD_DATABASE_NAME
+          value: {{ .Values.externalDatabase.database | quote }}
+        - name: XROAD_DATABASE_USER
+          value: {{ .Values.externalDatabase.username | quote }}
+        - name: XROAD_DATABASE_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: xroad-postgres-ha.credentials.xroad
+              key: password
+              optional: true
+        - name: XROAD_DATABASE_SSL_MODE
+          value: {{ .Values.externalDatabase.sslMode | quote }}
+        {{- else }}
         - name: XROAD_DATABASE_HOST
           value: {{ include "xroad.postgresql.fullname" . }}
         - name: XROAD_DATABASE_PORT
@@ -238,6 +275,7 @@ spec:
             secretKeyRef:
               name: {{ include "xroad.postgresql.fullname" . }}-credentials
               key: password
+        {{- end }}
         resources:
           {{- toYaml .Values.securityServer.resources | nindent 10 }}
         volumeMounts:

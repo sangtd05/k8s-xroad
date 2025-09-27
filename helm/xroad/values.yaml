@@ -96,53 +96,35 @@ securityServer:
   # nodeSelector:
   #   kubernetes.io/hostname: k8s-worker-2
 
-# PostgreSQL Operator configuration
+# PostgreSQL Operator configuration (installed separately)
 postgresOperator:
-  enabled: true
-  # Use default values from postgres-operator chart
+  enabled: false  # Disabled - install separately
 
 postgresOperatorUI:
-  enabled: true
-  # Use default values from postgres-operator-ui chart
+  enabled: false  # Disabled - install separately
 
-# PostgreSQL cluster configuration
+# PostgreSQL cluster configuration (disabled - using external HA cluster)
 postgresql:
+  enabled: false  # Disabled - using external PostgreSQL HA cluster
+
+# External database configuration for X-Road
+externalDatabase:
   enabled: true
-  # Database configuration
-  database:
-    name: "xroad"
-    user: "xroad"
-    password: "xroad"
+  host: "xroad-postgres-ha.xroad.svc.cluster.local"
+  port: 5432
+  database: "xroad"
+  username: "xroad"
+  password: "xroad123"  # Will be overridden by operator-created secret
+  sslMode: "prefer"
   
-  # Storage configuration
-  persistence:
-    enabled: true
-    storageClass: ""
-    size: 20Gi
+  # Connection pool settings
+  maxConnections: 100
+  connectionTimeout: 30
+  idleTimeout: 300
   
-  # Resources
-  resources:
-    limits:
-      cpu: 1000m
-      memory: 2000Mi
-    requests:
-      cpu: 250m
-      memory: 1000Mi
-  
-  # Node selector for PostgreSQL
-  nodeSelector: {}
-  # nodeSelector:
-  #   kubernetes.io/hostname: k8s-worker-1
-  
-  # Backup configuration
-  backup:
-    enabled: true
-    # S3 configuration for backups
-    s3:
-      bucket: ""
-      region: ""
-      accessKey: ""
-      secretKey: ""
+  # Replica service for read-only operations (optional)
+  replicaHost: "xroad-postgres-ha-repl.xroad.svc.cluster.local"
+  replicaPort: 5432
 
 # Network policies
 networkPolicy:
