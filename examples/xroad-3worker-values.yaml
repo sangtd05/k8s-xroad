@@ -82,57 +82,25 @@ securityServer:
 
 # PostgreSQL Operator configuration
 postgresOperator:
-  enabled: true
+  enabled: false # Disabled because we install PostgreSQL Operator separately
 
 postgresOperatorUI:
   enabled: false # Disabled to avoid conflicts
 
-# PostgreSQL cluster configuration with Patroni HA
+# PostgreSQL cluster configuration - Disabled in X-Road chart
+# We use external PostgreSQL HA cluster managed by PostgreSQL Operator
 postgresql:
+  enabled: false # Disabled because we use external PostgreSQL HA
+
+# External database configuration for X-Road
+externalDatabase:
   enabled: true
-  database:
-    name: "xroad"
-    user: "xroad"
-    password: "xroad123"
-
-  # Deploy 3 replicas across all workers for HA
-  numberOfInstances: 3
-
-  # Anti-affinity to ensure each replica on different worker
-  affinity:
-    podAntiAffinity:
-      requiredDuringSchedulingIgnoredDuringExecution:
-        - labelSelector:
-            matchExpressions:
-              - key: app.kubernetes.io/name
-                operator: In
-                values:
-                  - postgres-operator
-          topologyKey: kubernetes.io/hostname
-
-  persistence:
-    enabled: true
-    storageClass: ""
-    size: 20Gi
-
-  resources:
-    limits:
-      cpu: 1000m
-      memory: 2000Mi
-    requests:
-      cpu: 250m
-      memory: 1000Mi
-
-  postgresql:
-    version: "15"
-    parameters:
-      max_connections: "200"
-      shared_preload_libraries: "pg_stat_statements"
-      pg_stat_statements.max: "10000"
-      pg_stat_statements.track: "all"
-
-  backup:
-    enabled: false
+  host: "xroad-postgres-ha.xroad.svc.cluster.local"
+  port: 5432
+  database: "xroad"
+  username: "xroad"
+  password: "xroad123"
+  sslMode: "prefer"
 
 # Network policies
 networkPolicy:
@@ -178,4 +146,10 @@ monitoring:
 # Pod Anti-Affinity for High Availability
 podAntiAffinity:
   enabled: true
-  type: "preferredDuringSchedulingIgnoredDuringExecution"
+  type: "requiredDuringSchedulingIgnoredDuringExecution"
+  rules:
+    requiredDuringSchedulingIgnoredDuringExecution:
+      - labelSelector:
+          matchLabels:
+            app.kubernetes.io/name: xroad-central-server
+        topologyKey: "kubernetes.io/hostname"
