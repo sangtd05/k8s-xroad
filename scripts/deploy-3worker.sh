@@ -137,8 +137,25 @@ print_success "Namespace '$NAMESPACE' is ready"
 
 # Install PostgreSQL Operator
 print_status "Installing PostgreSQL Operator..."
-helm upgrade --install postgres-operator \
-    https://github.com/zalando/postgres-operator/blob/master/charts/postgres-operator/postgres-operator-1.14.0.tgz \
+
+# Download PostgreSQL Operator chart
+print_status "Downloading PostgreSQL Operator chart..."
+curl -L -o /tmp/postgres-operator-1.14.0.tgz \
+    "https://github.com/zalando/postgres-operator/raw/master/charts/postgres-operator/postgres-operator-1.14.0.tgz" || {
+    print_error "Failed to download PostgreSQL Operator chart"
+    exit 1
+}
+
+# Download PostgreSQL Operator UI chart
+print_status "Downloading PostgreSQL Operator UI chart..."
+curl -L -o /tmp/postgres-operator-ui-1.14.0.tgz \
+    "https://github.com/zalando/postgres-operator/raw/master/charts/postgres-operator-ui/postgres-operator-ui-1.14.0.tgz" || {
+    print_error "Failed to download PostgreSQL Operator UI chart"
+    exit 1
+}
+
+# Install PostgreSQL Operator
+helm upgrade --install postgres-operator /tmp/postgres-operator-1.14.0.tgz \
     --namespace xroad \
     --create-namespace \
     --wait \
@@ -149,14 +166,17 @@ helm upgrade --install postgres-operator \
 
 # Install PostgreSQL Operator UI
 print_status "Installing PostgreSQL Operator UI..."
-helm upgrade --install postgres-operator-ui \
-    https://github.com/zalando/postgres-operator/blob/master/charts/postgres-operator-ui/postgres-operator-ui-1.14.0.tgz \
+helm upgrade --install postgres-operator-ui /tmp/postgres-operator-ui-1.14.0.tgz \
     --namespace xroad \
     --wait \
     --timeout 10m || {
     print_error "Failed to install PostgreSQL Operator UI"
     exit 1
 }
+
+# Clean up downloaded files
+print_status "Cleaning up downloaded files..."
+rm -f /tmp/postgres-operator-1.14.0.tgz /tmp/postgres-operator-ui-1.14.0.tgz
 
 print_success "PostgreSQL Operator and UI installed successfully"
 
