@@ -1,0 +1,62 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: ss-public
+  namespace: xroad
+  annotations:
+    metallb.universe.tf/allow-shared-ip: "xroad"
+spec:
+  type: LoadBalancer
+  selector: { app: ss-secondary }
+  # If you need a static IP, set loadBalancerIP to one from your MetalLB pool:
+  # loadBalancerIP: 203.0.113.53
+  ports:
+    - { name: xroad-5500, port: 5500, targetPort: 5500 }
+    - { name: xroad-5577, port: 5577, targetPort: 5577 }
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ss-secondary
+  namespace: xroad
+spec:
+  replicas: 1
+  selector: { matchLabels: { app: ss-secondary } }
+  template:
+    metadata: { labels: { app: ss-secondary } }
+    spec:
+      # Pin to k8s-worker-2 by hostname or label; change selector to match your node
+      nodeSelector:
+        kubernetes.io/hostname: k8s-worker-2
+      containers:
+        - name: sidecar
+          image: niis/xroad-security-server-sidecar:7.6.2-secondary
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: XROAD_PRIMARY_HS
+              value: "ss-primary.xroad.svc.cluster.local"
+          envFrom:
+            - secretRef: { name: xroad-secrets }
+          ports:
+            - { containerPort: 5500 }
+            - { containerPort: 5577 }
+            - { containerPort: 5588, name: health }
+          volumeMounts:
+            - { name: etc-xroad, mountPath: /etc/xroad }
+            - { name: var-xroad, mountPath: /var/lib/xroad }
+            - { name: db-props,  mountPath: /etc/xroad/db.properties, subPath: db.properties }
+          resources:
+            requests: { cpu: "1000m", memory: "3Gi" }
+            limits:   { cpu: "2000m", memory: "4Gi" }
+          readinessProbe:
+            httpGet: { path: "/", port: 5588 }
+            initialDelaySeconds: 30
+            periodSeconds: 10
+          livenessProbe:
+            httpGet: { path: "/", port: 5588 }
+            initialDelaySeconds: 60
+            periodSeconds: 20
+      volumes:
+        - { name: etc-xroad, persistentVolumeClaim: { claimName: etc-xroad-secondary-pvc } }
+        - { name: var-xroad, persistentVolumeClaim: { claimName: var-xroad-secondary-pvc } }
+        - { name: db-props,  secret: { secretName: xroad-db-properties } }

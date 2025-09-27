@@ -1,0 +1,26 @@
+# Secret with db.properties to define ALL three databases explicitly
+apiVersion: v1
+kind: Secret
+metadata:
+  name: xroad-db-properties
+  namespace: xroad
+type: Opaque
+stringData:
+  db.properties: |
+    # server configuration DB
+    serverconf.hibernate.connection.url=jdbc:postgresql://xroad-pg.xroad.svc.cluster.local:5432/serverconf
+    serverconf.hibernate.connection.username=xroad_app
+    serverconf.hibernate.connection.password=CHANGE_ME_DB_PASS
+    serverconf.hibernate.connection.driver_class=org.postgresql.Driver
+
+    # message log DB
+    messagelog.hibernate.connection.url=jdbc:postgresql://xroad-pg.xroad.svc.cluster.local:5432/messagelog
+    messagelog.hibernate.connection.username=xroad_app
+    messagelog.hibernate.connection.password=CHANGE_ME_DB_PASS
+    messagelog.hibernate.connection.driver_class=org.postgresql.Driver
+
+    # operational monitoring DB
+    op-monitor.hibernate.connection.url=jdbc:postgresql://xroad-pg.xroad.svc.cluster.local:5432/opmonitor
+    op-monitor.hibernate.connection.username=xroad_app
+    op-monitor.hibernate.connection.password=CHANGE_ME_DB_PASS
+    op-monitor.hibernate.connection.driver_class=org.postgresql.Driver

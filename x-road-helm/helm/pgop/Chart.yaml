@@ -1,8 +1,0 @@
----
-apiVersion: v2
-name: pgop
-description: A Helm chart for deploying PostgreSQL cluster using Zalando Postgres Operator.
-
-type: application
-version: 0.1.0
-appVersion: "latest"
