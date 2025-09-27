@@ -1,9 +1,0 @@
-# OPTIONAL: Only if you use MetalLB and don't have a pool yet.
-apiVersion: metallb.io/v1beta1
-kind: IPAddressPool
-metadata:
-  name: xroad-pool
-  namespace: metallb-system
-spec:
-  addresses:
-    - 203.0.113.50-203.0.113.60   # TODO: change to your public/L2 range

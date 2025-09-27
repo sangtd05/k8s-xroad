@@ -1,0 +1,18 @@
+{
+  "request": {
+    "method": "GET",
+    "url": "/api/v1/test"
+  },
+  "response": {
+    "status": 200,
+    "headers": {
+      "Content-Type": "application/json"
+    },
+    "jsonBody": {
+      "message": "X-Road REST API Test Service",
+      "status": "success",
+      "timestamp": "{{now}}",
+      "version": "1.0.0"
+    }
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "request": {
+    "method": "GET",
+    "url": "/api/v1/health"
+  },
+  "response": {
+    "status": 200,
+    "headers": {
+      "Content-Type": "application/json"
+    },
+    "jsonBody": {
+      "status": "healthy",
+      "timestamp": "{{now}}",
+      "uptime": "{{randomInt lower=1000 upper=9999}}",
+      "version": "1.0.0"
+    }
+  }
+}
