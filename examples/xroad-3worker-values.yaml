@@ -10,8 +10,8 @@ global:
 centralServer:
   enabled: true
   image:
-    repository: xroad-centralserver
-    tag: "7.6.0"
+    repository: niis/xroad-central-server
+    tag: "noble-7.7.0"
     pullPolicy: Always
 
   ports:
@@ -53,12 +53,19 @@ securityServer:
   enabled: true
   image:
     repository: niis/xroad-security-server-sidecar
-    primaryTag: "7.6.1-primary-ee"
-    secondaryTag: "7.6.1-secondary-ee"
+    primaryTag: "7.7.0-primary"
+    secondaryTag: "7.7.0-secondary"
     pullPolicy: Always
 
   # Deploy primary on worker-2, secondary on worker-3
   secondaryReplicaCount: 1
+
+  # Node selectors for specific deployment
+  primaryNodeSelector:
+    kubernetes.io/hostname: k8s-worker-2
+
+  secondaryNodeSelector:
+    kubernetes.io/hostname: k8s-worker-3
 
   service:
     type: NodePort
@@ -144,12 +151,15 @@ monitoring:
     scrapeTimeout: 10s
 
 # Pod Anti-Affinity for High Availability
-podAntiAffinity:
-  enabled: true
-  type: "requiredDuringSchedulingIgnoredDuringExecution"
-  rules:
-    requiredDuringSchedulingIgnoredDuringExecution:
-      - labelSelector:
-          matchLabels:
-            app.kubernetes.io/name: xroad-central-server
-        topologyKey: "kubernetes.io/hostname"
+affinity:
+  podAntiAffinity:
+    preferredDuringSchedulingIgnoredDuringExecution:
+      - weight: 100
+        podAffinityTerm:
+          labelSelector:
+            matchExpressions:
+              - key: app.kubernetes.io/name
+                operator: In
+                values:
+                  - xroad-central-server
+          topologyKey: "kubernetes.io/hostname"
