@@ -1,0 +1,2 @@
+Deploy PostgreSQL cluster using Zalando Postgres Operator.
+Operator installation is not part of this Helm Chart.

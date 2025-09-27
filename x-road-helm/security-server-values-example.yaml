@@ -1,0 +1,151 @@
+---
+# Custom values for security-server.
+
+image:
+  repository: niis/xroad-security-server-sidecar
+  pullPolicy: Always
+  primaryTag: "7.6.1-primary-ee"
+  secondaryTag: "7.6.1-secondary-ee"
+
+nameOverride: ""
+fullnameOverride: ""
+
+secondaryReplicaCount: 2
+
+applyNetworkPolicy: true
+adminAllowedIPRange: 0.0.0.0/0
+
+# Consumer port used by other PODs
+consumerPort: 443
+
+# NodePort or LoadBalancer
+serviceType: NodePort
+
+# Assign external IP using MetalLB annotation
+# metalLBIPs: 192.168.1.240
+
+# External NodePorts
+adminNodePort: 30050
+consumerNodePort: 30051
+transportNodePort: 30052
+ocspNodePort: 30053
+healthNodePort: 30054
+
+dbHost: "xrd-pgop"
+dbSecretName: "postgres.xrd-pgop.credentials.postgresql.acid.zalan.do"
+
+envSecretName: "xrd-env"
+sshSecretName: "xrd-ssh"
+
+etcVolumeSize: 100Mi
+libVolumeSize: 1000Mi
+
+resources:
+  limits:
+    cpu: 2000m
+    memory: 4000Mi
+  requests:
+    cpu: 500m
+    memory: 2000Mi
+
+customCommandPrimary: ["/root/custom-entrypoint.sh"]
+
+customCommandSecondary: ["/root/custom-entrypoint.sh"]
+
+# Variable filesData is a string to be able to use templating
+filesData: |
+  xroad-custom-cron: |
+    # Automatic backup transfer to backup server
+    # User xroad lacks permissions to write to '/proc/1/fd/1' (docker logs) and writing logs to files is antipattern in containers.
+    # 54 02 * * * xroad rsync -azq --timeout=10 --chmod=F440 --include '*.gpg' -e 'ssh -i /etc/.ssh/id_rsa -o StrictHostKeyChecking=no' --rsync-path "mkdir -m 755 -p /srv/arhiivxtee/xroad_backup_files/$(cat /etc/xroad/globalconf/instance-identifier)/{{ include "security-server.fullname" . }}/ && rsync" /var/lib/xroad/backup/ xroad@xrd-backup:/srv/arhiivxtee/xroad_backup_files/$(cat /etc/xroad/globalconf/instance-identifier)/{{ include "security-server.fullname" . }}/ && find /var/lib/xroad/backup/ -type f -mtime +7 -name 'ss-automatic-backup*.gpg' -execdir rm -- '{}' \;
+    # Running rsync as root might not be secure
+    # 54 02 * * * root rsync -azq --timeout=10 --chmod=F440 --include '*.gpg' --log-file '/proc/1/fd/1'-e 'ssh -i /etc/.ssh/id_rsa -o StrictHostKeyChecking=no' --rsync-path "mkdir -m 755 -p /srv/arhiivxtee/xroad_backup_files/$(cat /etc/xroad/globalconf/instance-identifier)/{{ include "security-server.fullname" . }}/ && rsync" /var/lib/xroad/backup/ xroad@xrd-backup:/srv/arhiivxtee/xroad_backup_files/$(cat /etc/xroad/globalconf/instance-identifier)/{{ include "security-server.fullname" . }}/ && find /var/lib/xroad/backup/ -type f -mtime +7 -name 'ss-automatic-backup*.gpg' -execdir rm -- '{}' \;
+
+    # Overriding backup retention policy, delete backups older than 5 days
+    05 04 * * * xroad find /var/lib/xroad/backup -type f -name "ss-automatic-backup*.gpg" -mtime +5 -delete
+
+    # Deleting archived message logs older than 5 days (NB! In production transfer mlog to backup server first)
+    15 04 * * * xroad find /var/lib/xroad -type f -name "mlog-*.zip" -mtime +5 -delete
+  custom-entrypoint.sh: |
+    #!/bin/bash
+
+    echo "Starting custom-entrypoint.sh..."
+
+    echo "Here we can install xroad-addon-hwtokens, add UI admin users, update CA certificates and perform other custom actions."
+    update-ca-certificates
+
+    echo "Starting normal entrypoint.sh..."
+    /root/entrypoint.sh
+  RIA_ROOT_CA_2018_ECC_G2.crt: |
+    subject=/E=pki@ria.ee/CN=RIA ROOT CA 2018 ECC G2/O=Information System Authority/C=EE
+    issuer=/E=pki@ria.ee/CN=RIA ROOT CA 2018 ECC G2/O=Information System Authority/C=EE
+    -----BEGIN CERTIFICATE-----
+    MIICczCCAhmgAwIBAgIIM3acahuTqKUwCgYIKoZIzj0EAwQwcTELMAkGA1UEBhMC
+    RUUxJTAjBgNVBAoMHEluZm9ybWF0aW9uIFN5c3RlbSBBdXRob3JpdHkxIDAeBgNV
+    BAMMF1JJQSBST09UIENBIDIwMTggRUNDIEcyMRkwFwYJKoZIhvcNAQkBFgpwa2lA
+    cmlhLmVlMB4XDTE4MDkyNTIwNDIxOFoXDTM4MDkyMDIwNDIxOFowcTELMAkGA1UE
+    BhMCRUUxJTAjBgNVBAoMHEluZm9ybWF0aW9uIFN5c3RlbSBBdXRob3JpdHkxIDAe
+    BgNVBAMMF1JJQSBST09UIENBIDIwMTggRUNDIEcyMRkwFwYJKoZIhvcNAQkBFgpw
+    a2lAcmlhLmVlMFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEdpiscREH07e/tPuB
+    wNmvc2D8cO3z+bkJqWxjJa8iANVPjwD806YUzxRDRT76cYmSYERQIc2dfIkMruAY
+    LpnsNKOBmjCBlzAPBgNVHRMBAf8EBTADAQH/MB8GA1UdIwQYMBaAFFAhYdNQD3v/
+    ujG/11bDLnsyGAhCMDQGA1UdJQEB/wQqMCgGCCsGAQUFBwMCBggrBgEFBQcDBAYI
+    KwYBBQUHAwkGCCsGAQUFBwMBMB0GA1UdDgQWBBRQIWHTUA97/7oxv9dWwy57MhgI
+    QjAOBgNVHQ8BAf8EBAMCAQYwCgYIKoZIzj0EAwQDSAAwRQIhAOxQm7bTrv9NQmuo
+    he1bjlulkxuPEN1thhFI+XJag7kiAiAGCzeudBLeNqms3660k8ZrpV8JH5/MXQM8
+    EK5IbTUWFA==
+    -----END CERTIFICATE-----
+
+# Variables volumesPrimary and volumesSecondary are strings to be able to use templating
+volumesPrimary: |
+  - name: files
+    configMap:
+      name: {{ include "security-server.fullname" . }}-files
+      optional: false
+      items:
+      - key: xroad-custom-cron
+        path: xroad-custom-cron
+        mode: 0644
+      - key: custom-entrypoint.sh
+        path: custom-entrypoint.sh
+        mode: 0755
+      - key: RIA_ROOT_CA_2018_ECC_G2.crt
+        path: RIA_ROOT_CA_2018_ECC_G2.crt
+        mode: 0644
+
+volumesSecondary: |
+  - name: files
+    configMap:
+      name: {{ include "security-server.fullname" . }}-files
+      optional: false
+      items:
+      - key: custom-entrypoint.sh
+        path: custom-entrypoint.sh
+        mode: 0755
+      - key: RIA_ROOT_CA_2018_ECC_G2.crt
+        path: RIA_ROOT_CA_2018_ECC_G2.crt
+        mode: 0644
+
+volumeMountsPrimary:
+- name: files
+  mountPath: "/etc/cron.d/xroad-custom"
+  subPath: "xroad-custom-cron"
+  readOnly: true
+- name: files
+  mountPath: "/root/custom-entrypoint.sh"
+  subPath: "custom-entrypoint.sh"
+  readOnly: true
+- name: files
+  mountPath: "/usr/local/share/ca-certificates/RIA_ROOT_CA_2018_ECC_G2.crt"
+  subPath: "RIA_ROOT_CA_2018_ECC_G2.crt"
+  readOnly: true
+
+volumeMountsSecondary:
+- name: files
+  mountPath: "/root/custom-entrypoint.sh"
+  subPath: "custom-entrypoint.sh"
+  readOnly: true
+- name: files
+  mountPath: "/usr/local/share/ca-certificates/RIA_ROOT_CA_2018_ECC_G2.crt"
+  subPath: "RIA_ROOT_CA_2018_ECC_G2.crt"
+  readOnly: true

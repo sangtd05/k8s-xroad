@@ -1,0 +1,138 @@
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: {{ include "security-server.fullname" . }}-primary
+  labels:
+    {{- include "security-server-primary.labels" . | nindent 4 }}
+spec:
+  selector:
+    matchLabels:
+      {{- include "security-server-primary.selectorLabels" . | nindent 6 }}
+  # Must always be "1", Security Server does not support multiple primary nodes
+  replicas: 1
+  serviceName: {{ include "security-server.fullname" . }}-primary
+  template:
+    metadata:
+      labels:
+        {{- include "security-server-primary.labels" . | nindent 8 }}
+    spec:
+      securityContext:
+        # Mounting secrets with xroad (999) group
+        fsGroup: 999
+      volumes:
+      - name: ssh-secret
+        secret:
+          {{- if .Values.sshSecretName }}
+          secretName: {{ .Values.sshSecretName }}
+          {{- else }}
+          secretName: {{ include "security-server.fullname" . }}-ssh
+          {{- end }}
+          items:
+          - key: private-key
+            path: id_rsa
+            mode: 0440
+          - key: public-key
+            path: id_rsa.pub
+            mode: 0644
+      - name: localtime
+        # Using correct timezone
+        hostPath:
+          path: "/etc/localtime"
+          type: File
+      {{- if .Values.volumesPrimary }}
+      {{- tpl .Values.volumesPrimary . | nindent 6 }}
+      {{- end }}
+      # This workaround is not required for v7.6.0+
+      # Fixed in https://nordic-institute.atlassian.net/browse/XRDDEV-2682
+      # initContainers:
+      # - name: initialize-volumes
+      #   image: "{{ .Values.image.repository }}:{{ .Values.image.primaryTag }}"
+      #   imagePullPolicy: {{ .Values.image.pullPolicy }}
+      #   command: ['sh', '-c', 'mkdir -p /var/lib/xroad/backup && chown 999:999 /var/lib/xroad/backup']
+      #   volumeMounts:
+      #   - name: primary-lib
+      #     mountPath: /var/lib/xroad/
+      containers:
+      - name: security-server
+        image: "{{ .Values.image.repository }}:{{ .Values.image.primaryTag }}"
+        imagePullPolicy: {{ .Values.image.pullPolicy }}
+        {{- with .Values.customCommandPrimary }}
+        command:
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+        resources:
+          {{- toYaml .Values.resources | nindent 10 }}
+        volumeMounts:
+        - name: primary-etc
+          mountPath: /etc/xroad/
+        - name: primary-lib
+          mountPath: /var/lib/xroad/
+        - name: ssh-secret
+          mountPath: "/etc/.ssh/"
+        - name: 'localtime'
+          mountPath: '/etc/localtime'
+        {{- with .Values.volumeMountsPrimary }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+        envFrom:
+        - secretRef:
+            {{- if .Values.envSecretName }}
+            name: {{ .Values.envSecretName }}
+            {{- else }}
+            name: {{ include "security-server.fullname" . }}-env
+            {{- end }}
+        env:
+        - name: XROAD_LOG_LEVEL
+          value: "INFO"
+        - name: XROAD_DB_HOST
+          value: "{{ .Values.dbHost }}"
+        - name: XROAD_DB_PWD
+          valueFrom:
+            secretKeyRef:
+              name: {{ .Values.dbSecretName | default ( printf "%s-db" ( include "security-server.fullname" . ) ) }}
+              key: password
+        startupProbe:
+          httpGet:
+            path: /
+            port: 4000
+            scheme: "HTTPS"
+          periodSeconds: 10
+          failureThreshold: 60
+        livenessProbe:
+          httpGet:
+            path: /
+            port: 4000
+            scheme: "HTTPS"
+          periodSeconds: 20
+          timeoutSeconds: 18
+          successThreshold: 1
+          failureThreshold: 6
+        ports:
+          - containerPort: 4000
+          #- containerPort: 8443
+          #- containerPort: 5500
+          #- containerPort: 5577
+          #- containerPort: 5588
+          - containerPort: 22
+  volumeClaimTemplates:
+  - metadata:
+      name: primary-etc
+      labels:
+        {{- include "security-server-primary.volumeLabels" . | nindent 8 }}
+    spec:
+      accessModes:
+      - ReadWriteOnce
+      resources:
+        requests:
+          storage: {{ .Values.etcVolumeSize }}
+  - metadata:
+      name: primary-lib
+      labels:
+        {{- include "security-server-primary.volumeLabels" . | nindent 8 }}
+    spec:
+      accessModes:
+      - ReadWriteOnce
+      resources:
+        requests:
+          storage: {{ .Values.libVolumeSize }}
