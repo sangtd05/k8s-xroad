@@ -82,7 +82,8 @@ RUN mkdir -p /root/etc/xroad \
 
 # Setup users
 ARG USER_PASSWD
-RUN useradd xrd-sec && adduser xrd-sec xroad-security-officer && sh -c "echo 'xrd-sec:${USER_PASSWD:-secret}' | chpasswd" \
+RUN groupadd softhsm \
+    && useradd xrd-sec && adduser xrd-sec xroad-security-officer && sh -c "echo 'xrd-sec:${USER_PASSWD:-secret}' | chpasswd" \
     && useradd xrd-reg && adduser xrd-reg xroad-registration-officer && sh -c "echo 'xrd-reg:${USER_PASSWD:-secret}' | chpasswd" \
     && useradd xrd-ser && adduser xrd-ser xroad-service-administrator && sh -c "echo 'xrd-ser:${USER_PASSWD:-secret}' | chpasswd" \
     && useradd xrd-sys && adduser xrd-sys xroad-system-administrator && sh -c "echo 'xrd-sys:${USER_PASSWD:-secret}' | chpasswd" \
