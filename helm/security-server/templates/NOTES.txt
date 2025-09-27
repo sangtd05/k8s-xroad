@@ -1,1 +1,0 @@
-X-Road Security Server cluster.

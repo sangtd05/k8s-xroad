@@ -1,8 +1,0 @@
----
-apiVersion: v2
-name: security-server
-description: A Helm chart for deploying X-Road Security Server cluster
-
-type: application
-version: 0.1.2
-appVersion: "7.6.0"

@@ -1,340 +1,239 @@
-# X-Road Helm Charts
+# X-Road Kubernetes Deployment
 
-This repository contains Helm charts for deploying a complete X-Road infrastructure on Kubernetes, including Central Server and Security Server cluster.
+A complete X-Road deployment solution for Kubernetes with Central Server and Security Server cluster.
 
-## Overview
+## 🚀 Quick Start
 
-X-Road is a distributed data exchange layer between information systems that provides a standardized and secure way to produce and consume services. This Helm chart deployment includes:
+### Deploy X-Road
 
-- **Central Server**: Manages the global configuration and member information
-- **Security Server Cluster**: Handles secure message exchange (Primary + Secondary nodes)
-- **PostgreSQL Cluster**: Database backend for both Central Server and Security Servers
-- **PostgreSQL Operator**: Manages the PostgreSQL cluster lifecycle
+```bash
+# Deploy X-Road on 3-worker cluster
+./xroad.sh deploy
 
-## Architecture
+# Check deployment status
+./xroad.sh status
 
-```
-┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
-│  Central Server │    │ Security Server │    │ Security Server │
-│                 │    │    (Primary)    │    │   (Secondary)   │
-│  - Admin UI     │    │                 │    │                 │
-│  - Management   │    │ - Admin UI      │    │ - Admin UI      │
-│  - Registration │    │ - Consumer      │    │ - Consumer      │
-│  - PostgreSQL   │    │ - Transport     │    │ - Transport     │
-└─────────────────┘    └─────────────────┘    └─────────────────┘
-         │                       │                       │
-         └───────────────────────┼───────────────────────┘
-                                 │
-                    ┌─────────────────┐
-                    │ PostgreSQL      │
-                    │    Cluster      │
-                    │                 │
-                    │ - Central DB    │
-                    │ - Security DB   │
-                    └─────────────────┘
+# View access information
+./xroad.sh access
 ```
 
-## Prerequisites
+### Access Services
+
+```bash
+# Central Server Admin Interface
+kubectl port-forward -n xroad svc/xroad-central-server 4000:4000
+# Open: https://localhost:4000
+# Credentials: xrd-sys / secret
+
+# Security Server Admin Interface  
+kubectl port-forward -n xroad svc/xroad-security-server 4000:4000
+# Open: https://localhost:4000
+# Credentials: xrd-sys / secret
+```
+
+## 📁 Project Structure
+
+```
+x-road-helm/
+├── xroad.sh                    # Main management script
+├── helm/                       # Helm charts
+│   └── xroad/                  # Main X-Road chart
+├── scripts/                    # Management scripts
+│   ├── deploy-3worker.sh       # Deployment script
+│   ├── cleanup.sh              # Full cleanup
+│   ├── quick-cleanup.sh        # Quick cleanup
+│   ├── status-check.sh         # Status checker
+│   └── manage.sh               # Advanced management
+├── docs/                       # Documentation
+│   └── 3WORKER_DEPLOYMENT.md   # Detailed deployment guide
+├── examples/                   # Example configurations
+│   ├── xroad-3worker-values.yaml
+│   └── docker-compose.yml
+└── docker/                     # Docker configurations
+    └── central-server/
+```
+
+## 🛠️ Management Commands
+
+### Basic Operations
+
+```bash
+# Deploy X-Road
+./xroad.sh deploy
+
+# Check status
+./xroad.sh status
+
+# View logs
+./xroad.sh logs central
+./xroad.sh logs security
+./xroad.sh logs all
+
+# Show access info
+./xroad.sh access
+```
+
+### Advanced Operations
+
+```bash
+# Restart services
+./xroad.sh restart
+
+# Scale Security Server
+./xroad.sh scale 3
+
+# Create backup
+./xroad.sh backup
+
+# Restore from backup
+./xroad.sh restore ./backups/20241201_120000
+
+# Cleanup (with confirmation)
+./xroad.sh cleanup
+
+# Quick cleanup (no confirmation)
+./xroad.sh quick-cleanup
+```
+
+## 🏗️ Architecture
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                    X-Road Kubernetes Stack                 │
+├─────────────────────────────────────────────────────────────┤
+│  Central Server          │  Security Server Cluster        │
+│  ┌─────────────────┐    │  ┌─────────────────┐            │
+│  │ - Admin UI      │    │  │ Primary Node    │            │
+│  │ - Management    │    │  │ - Admin UI      │            │
+│  │ - Registration  │    │  │ - Consumer      │            │
+│  │ - PostgreSQL    │    │  │ - Transport     │            │
+│  └─────────────────┘    │  └─────────────────┘            │
+│                         │  ┌─────────────────┐            │
+│                         │  │ Secondary Nodes │            │
+│                         │  │ - Admin UI      │            │
+│                         │  │ - Consumer      │            │
+│                         │  │ - Transport     │            │
+│                         │  └─────────────────┘            │
+├─────────────────────────────────────────────────────────────┤
+│                PostgreSQL Cluster                          │
+│  ┌─────────────────────────────────────────────────────┐   │
+│  │ - Central Server Database                           │   │
+│  │ - Security Server Database                          │   │
+│  │ - High Availability                                 │   │
+│  │ - Automated Backups                                 │   │
+│  └─────────────────────────────────────────────────────┘   │
+└─────────────────────────────────────────────────────────────┘
+```
+
+## 📋 Prerequisites
 
 - Kubernetes cluster (1.19+)
 - Helm 3.0+
-- kubectl configured to access your cluster
-- Sufficient resources:
-  - CPU: 8+ cores total
-  - Memory: 16+ GB total
-  - Storage: 50+ GB total
+- kubectl configured
+- Resources: 8+ CPU cores, 16+ GB RAM, 50+ GB storage
 
-## Quick Start
+## 🔧 Configuration
 
-### 1. Add Helm Repositories
+### Custom Values
 
-```bash
-# Add PostgreSQL Operator repository
-helm repo add postgres-operator https://opensource.zalando.com/postgres-operator/charts/postgres-operator
-helm repo add postgres-operator-ui https://opensource.zalando.com/postgres-operator/charts/postgres-operator-ui
-helm repo update
-```
-
-### 2. Create Namespace
-
-```bash
-kubectl create namespace xroad
-```
-
-### 3. Deploy X-Road
-
-```bash
-# Deploy with default values
-helm install xroad ./helm/xroad -n xroad
-
-# Or deploy with custom values
-helm install xroad ./helm/xroad -n xroad -f xroad-values-example.yaml
-```
-
-### 4. Check Deployment Status
-
-```bash
-# Check all pods
-kubectl get pods -n xroad
-
-# Check services
-kubectl get svc -n xroad
-
-# Check logs
-kubectl logs -n xroad -l app.kubernetes.io/name=xroad-central-server -f
-kubectl logs -n xroad -l app.kubernetes.io/name=xroad-security-server -f
-```
-
-### 5. Access the Services
-
-#### Central Server Admin Interface
-
-```bash
-# Port forward to access admin interface
-kubectl port-forward -n xroad svc/xroad-central-server 4000:4000
-
-# Open browser to https://localhost:4000
-# Default credentials: xrd-sys / secret
-```
-
-#### Security Server Admin Interface
-
-```bash
-# Port forward to access admin interface
-kubectl port-forward -n xroad svc/xroad-security-server 4000:4000
-
-# Open browser to https://localhost:4000
-# Default credentials: xrd-sys / secret
-```
-
-## Configuration
-
-### Central Server Configuration
-
-The Central Server can be configured through the `centralServer` section in values.yaml:
+Edit `examples/xroad-3worker-values.yaml` for custom configuration:
 
 ```yaml
+# Central Server configuration
 centralServer:
   enabled: true
   image:
     repository: xroad-centralserver
     tag: "7.6.0"
-  ports:
-    admin: 4000
-    management: 4001
-    registration: 4002
-  service:
-    type: NodePort
-    adminNodePort: 30060
+  resources:
+    limits:
+      cpu: 2000m
+      memory: 4000Mi
+
+# Security Server configuration
+securityServer:
+  enabled: true
+  secondaryReplicaCount: 2
   resources:
     limits:
       cpu: 2000m
       memory: 4000Mi
 ```
 
-### Security Server Configuration
+### Node Distribution
 
-The Security Server cluster can be configured through the `securityServer` section:
+- **k8s-worker-1**: Central Server + PostgreSQL
+- **k8s-worker-2**: Security Server Primary
+- **k8s-worker-3**: Security Server Secondary
 
-```yaml
-securityServer:
-  enabled: true
-  image:
-    repository: niis/xroad-security-server-sidecar
-    primaryTag: "7.6.1-primary-ee"
-    secondaryTag: "7.6.1-secondary-ee"
-  secondaryReplicaCount: 2
-  service:
-    type: NodePort
-    adminNodePort: 30050
-    consumerNodePort: 30051
-```
+## 🐛 Troubleshooting
 
-### PostgreSQL Configuration
-
-The PostgreSQL cluster can be configured through the `postgresql` section:
-
-```yaml
-postgresql:
-  enabled: true
-  database:
-    name: "xroad"
-    user: "xroad"
-    password: "xroad123"
-  persistence:
-    size: 20Gi
-  backup:
-    enabled: true
-    s3:
-      bucket: "my-xroad-backups"
-      region: "us-west-2"
-```
-
-## Customization
-
-### Custom Docker Images
-
-To use custom Docker images, update the image configuration:
-
-```yaml
-centralServer:
-  image:
-    repository: your-registry/xroad-centralserver
-    tag: "custom-tag"
-
-securityServer:
-  image:
-    repository: your-registry/xroad-security-server-sidecar
-    primaryTag: "custom-primary-tag"
-    secondaryTag: "custom-secondary-tag"
-```
-
-### Custom Configuration Files
-
-You can provide custom configuration files through the `filesData` section:
-
-```yaml
-centralServer:
-  filesData: |
-    custom-config.ini: |
-      [admin-service]
-      global-configuration-generation-rate-in-seconds = 10
-      [configuration-client]
-      update-interval = 10
-```
-
-### Resource Limits
-
-Adjust resource limits based on your requirements:
-
-```yaml
-centralServer:
-  resources:
-    limits:
-      cpu: 4000m
-      memory: 8000Mi
-    requests:
-      cpu: 1000m
-      memory: 4000Mi
-
-securityServer:
-  resources:
-    limits:
-      cpu: 4000m
-      memory: 8000Mi
-    requests:
-      cpu: 1000m
-      memory: 4000Mi
-```
-
-## Monitoring and Logging
-
-### View Logs
+### Check Status
 
 ```bash
-# Central Server logs
-kubectl logs -n xroad -l app.kubernetes.io/name=xroad-central-server -f
+# Comprehensive status check
+./xroad.sh status
 
-# Security Server logs
-kubectl logs -n xroad -l app.kubernetes.io/name=xroad-security-server -f
+# View logs
+./xroad.sh logs all
 
-# PostgreSQL logs
-kubectl logs -n xroad -l postgresql.cnpg.io/cluster=xroad-postgresql -f
+# Check pod distribution
+kubectl get pods -n xroad -o wide
 ```
-
-### Health Checks
-
-```bash
-# Check pod status
-kubectl get pods -n xroad
-
-# Check service endpoints
-kubectl get endpoints -n xroad
-
-# Check persistent volumes
-kubectl get pv
-kubectl get pvc -n xroad
-```
-
-## Backup and Recovery
-
-### Database Backup
-
-The PostgreSQL cluster supports automated backups to S3:
-
-```yaml
-postgresql:
-  backup:
-    enabled: true
-    s3:
-      bucket: "my-xroad-backups"
-      region: "us-west-2"
-      accessKey: "AKIAIOSFODNN7EXAMPLE"
-      secretKey: "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY"
-```
-
-### Manual Backup
-
-```bash
-# Create manual backup
-kubectl exec -n xroad xroad-postgresql-1 -- pg_dump -U xroad xroad > backup.sql
-
-# Restore from backup
-kubectl exec -i -n xroad xroad-postgresql-1 -- psql -U xroad xroad < backup.sql
-```
-
-## Troubleshooting
 
 ### Common Issues
 
-1. **Pods not starting**: Check resource limits and node capacity
-2. **Database connection issues**: Verify PostgreSQL cluster status
-3. **Service not accessible**: Check service type and port configuration
-4. **Authentication issues**: Verify secret configuration
+1. **Pods not starting**: Check resources and node capacity
+2. **Database connection failed**: Verify PostgreSQL cluster
+3. **Service not accessible**: Check service configuration
+4. **Authentication failed**: Verify secret configuration
 
 ### Debug Commands
 
 ```bash
-# Describe pods for detailed status
-kubectl describe pod -n xroad <pod-name>
-
 # Check events
 kubectl get events -n xroad --sort-by='.lastTimestamp'
 
-# Check logs with timestamps
-kubectl logs -n xroad <pod-name> --timestamps=true
+# Describe pods
+kubectl describe pod -n xroad <pod-name>
 
-# Access pod shell
-kubectl exec -it -n xroad <pod-name> -- /bin/bash
+# Check resources
+kubectl top nodes
+kubectl top pods -n xroad
 ```
 
-## Security Considerations
+## 🔄 Cleanup and Redeploy
 
-1. **Change default passwords** in production
-2. **Use proper secrets management** (e.g., external-secrets-operator)
-3. **Enable network policies** for network segmentation
-4. **Use TLS certificates** for external access
-5. **Regular security updates** of container images
+### Complete Cleanup
 
-## Production Deployment
+```bash
+# Cleanup with confirmation
+./xroad.sh cleanup
 
-For production deployment, consider:
+# Quick cleanup (no confirmation)
+./xroad.sh quick-cleanup
+```
 
-1. **High Availability**: Deploy across multiple availability zones
-2. **Resource Planning**: Allocate sufficient CPU, memory, and storage
-3. **Monitoring**: Implement comprehensive monitoring and alerting
-4. **Backup Strategy**: Regular automated backups with tested recovery procedures
-5. **Security**: Implement proper authentication, authorization, and network security
-6. **Scaling**: Plan for horizontal scaling of Security Server nodes
+### Redeploy
 
-## Support
+```bash
+# Deploy again
+./xroad.sh deploy
+```
+
+## 📚 Documentation
+
+- [Deployment Guide](docs/3WORKER_DEPLOYMENT.md) - Detailed deployment instructions
+- [X-Road Documentation](https://docs.x-road.global) - Official X-Road docs
+- [X-Road Community](https://x-road.global) - Community support
+
+## 🤝 Support
 
 For issues and questions:
+- Check the [deployment guide](docs/3WORKER_DEPLOYMENT.md)
+- Run `./xroad.sh status` for diagnostics
+- Create an issue in this repository
 
-- X-Road Documentation: https://docs.x-road.global
-- X-Road Community: https://x-road.global
-- GitHub Issues: Create an issue in this repository
-
-## License
+## 📄 License
 
 This project is licensed under the MIT License - see the LICENSE file for details.

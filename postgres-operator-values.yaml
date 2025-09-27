@@ -1,2 +1,0 @@
-configAwsOrGcp:
-  wal_s3_bucket: "pgop-xtee"

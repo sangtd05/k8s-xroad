@@ -1,5 +1,6 @@
 ---
-# Example values for complete X-Road deployment
+# X-Road Default Configuration
+# This is the main values file for X-Road deployment
 
 # Global configuration
 global:
@@ -39,6 +40,8 @@ centralServer:
     storageClass: ""
     size: 10Gi
   
+  nodeSelector: {}
+  
   env:
     tokenPIN: "1234"
     adminUser: "xrd-sys"
@@ -74,6 +77,8 @@ securityServer:
   persistence:
     etcVolumeSize: 100Mi
     libVolumeSize: 1000Mi
+  
+  nodeSelector: {}
 
 # PostgreSQL Operator configuration
 postgresOperator:
@@ -89,6 +94,8 @@ postgresql:
     name: "xroad"
     user: "xroad"
     password: "xroad123"
+  
+  nodeSelector: {}
   
   persistence:
     enabled: true
@@ -143,6 +150,11 @@ ingress:
             name: central-server
             port: 4000
   tls: []
+
+# Pod Anti-Affinity for High Availability
+podAntiAffinity:
+  enabled: true
+  type: "preferredDuringSchedulingIgnoredDuringExecution"
 
 # Monitoring configuration
 monitoring:

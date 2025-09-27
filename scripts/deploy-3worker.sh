@@ -1,7 +1,7 @@
 #!/bin/bash
 
-# X-Road Helm Deployment Script
-# This script deploys a complete X-Road infrastructure on Kubernetes
+# X-Road Helm Deployment Script for 3 Worker Nodes Cluster
+# This script deploys X-Road with optimal distribution across 3 worker nodes
 
 set -e
 
@@ -15,7 +15,7 @@ NC='\033[0m' # No Color
 # Default values
 NAMESPACE="xroad"
 RELEASE_NAME="xroad"
-VALUES_FILE="xroad-values-example.yaml"
+VALUES_FILE="examples/xroad-3worker-values.yaml"
 DRY_RUN=false
 UPGRADE=false
 
@@ -43,16 +43,15 @@ show_usage() {
     echo "Options:"
     echo "  -n, --namespace NAME     Kubernetes namespace (default: xroad)"
     echo "  -r, --release NAME       Helm release name (default: xroad)"
-    echo "  -f, --values FILE        Values file (default: xroad-values-example.yaml)"
+    echo "  -f, --values FILE        Values file (default: xroad-3worker-values.yaml)"
     echo "  -d, --dry-run            Dry run mode"
     echo "  -u, --upgrade            Upgrade existing release"
     echo "  -h, --help               Show this help message"
     echo ""
-    echo "Examples:"
-    echo "  $0                                    # Deploy with default settings"
-    echo "  $0 -n my-xroad -f custom-values.yaml # Deploy with custom namespace and values"
-    echo "  $0 -d                                 # Dry run to see what would be deployed"
-    echo "  $0 -u                                 # Upgrade existing deployment"
+    echo "Deployment Strategy:"
+    echo "  - Central Server + PostgreSQL: k8s-worker-1"
+    echo "  - Security Server Primary: k8s-worker-2"
+    echo "  - Security Server Secondary: k8s-worker-3"
 }
 
 # Parse command line arguments
@@ -121,6 +120,16 @@ if ! kubectl cluster-info &> /dev/null; then
 fi
 print_success "Kubernetes connection successful"
 
+# Check cluster nodes
+print_status "Checking cluster nodes..."
+NODES=$(kubectl get nodes --no-headers | wc -l)
+WORKER_NODES=$(kubectl get nodes --no-headers | grep -v control-plane | wc -l)
+print_status "Found $NODES total nodes, $WORKER_NODES worker nodes"
+
+if [ $WORKER_NODES -lt 3 ]; then
+    print_warning "Only $WORKER_NODES worker nodes found. Recommended: 3+ worker nodes"
+fi
+
 # Create namespace if it doesn't exist
 print_status "Creating namespace '$NAMESPACE' if it doesn't exist..."
 kubectl create namespace "$NAMESPACE" --dry-run=client -o yaml | kubectl apply -f -
@@ -129,9 +138,27 @@ print_success "Namespace '$NAMESPACE' is ready"
 # Add Helm repositories
 print_status "Adding Helm repositories..."
 helm repo add postgres-operator https://opensource.zalando.com/postgres-operator/charts/postgres-operator
-helm repo add postgres-operator-ui https://opensource.zalando.com/postgres-operator/charts/postgres-operator-ui
+helm repo add postgres-operator-ui-charts https://opensource.zalando.com/postgres-operator/charts/postgres-operator-ui
 helm repo update
 print_success "Helm repositories added and updated"
+
+# Deploy PostgreSQL Operator first
+print_status "Deploying PostgreSQL Operator..."
+helm upgrade postgres-operator postgres-operator/postgres-operator \
+    --install \
+    --create-namespace \
+    --namespace postgres-operator \
+    --wait \
+    --timeout 5m
+
+print_status "Deploying PostgreSQL Operator UI..."
+helm upgrade postgres-operator-ui postgres-operator-ui/postgres-operator-ui \
+    --install \
+    --namespace postgres-operator \
+    --wait \
+    --timeout 5m
+
+print_success "PostgreSQL Operator deployed successfully"
 
 # Prepare Helm command
 HELM_CMD="helm"
@@ -149,12 +176,24 @@ else
 fi
 
 # Deploy X-Road
-print_status "Deploying X-Road with values from '$VALUES_FILE'..."
-$HELM_CMD "$RELEASE_NAME" ./helm/xroad \
+print_status "Deploying X-Road with 3-worker node distribution..."
+print_status "Deployment strategy:"
+print_status "  - Central Server + PostgreSQL: k8s-worker-1"
+print_status "  - Security Server Primary: k8s-worker-2"
+print_status "  - Security Server Secondary: k8s-worker-3"
+
+# Use default values if custom values file doesn't exist
+if [ ! -f "$VALUES_FILE" ]; then
+    print_warning "Custom values file not found: $VALUES_FILE"
+    print_status "Using default values.yaml"
+    VALUES_FILE="../values.yaml"
+fi
+
+$HELM_CMD "$RELEASE_NAME" ../helm/xroad \
     --namespace "$NAMESPACE" \
     --values "$VALUES_FILE" \
     --wait \
-    --timeout 10m
+    --timeout 15m
 
 if [ "$DRY_RUN" = true ]; then
     print_success "Dry run completed successfully"
@@ -165,10 +204,15 @@ print_success "X-Road deployment completed successfully"
 
 # Show deployment status
 print_status "Deployment status:"
-kubectl get pods -n "$NAMESPACE"
+kubectl get pods -n "$NAMESPACE" -o wide
 echo ""
 
 kubectl get svc -n "$NAMESPACE"
+echo ""
+
+# Show pod distribution
+print_status "Pod distribution across nodes:"
+kubectl get pods -n "$NAMESPACE" -o wide --no-headers | awk '{print $7}' | sort | uniq -c
 echo ""
 
 # Show access information
@@ -176,14 +220,14 @@ print_status "Access Information:"
 echo ""
 
 # Central Server access
-print_status "Central Server Admin Interface:"
+print_status "Central Server Admin Interface (k8s-worker-1):"
 echo "  kubectl port-forward -n $NAMESPACE svc/$RELEASE_NAME-central-server 4000:4000"
 echo "  Then open: https://localhost:4000"
 echo "  Default credentials: xrd-sys / secret"
 echo ""
 
 # Security Server access
-print_status "Security Server Admin Interface:"
+print_status "Security Server Admin Interface (k8s-worker-2):"
 echo "  kubectl port-forward -n $NAMESPACE svc/$RELEASE_NAME-security-server 4000:4000"
 echo "  Then open: https://localhost:4000"
 echo "  Default credentials: xrd-sys / secret"
@@ -191,8 +235,8 @@ echo ""
 
 # Show useful commands
 print_status "Useful commands:"
-echo "  # Check pod status"
-echo "  kubectl get pods -n $NAMESPACE"
+echo "  # Check pod status and distribution"
+echo "  kubectl get pods -n $NAMESPACE -o wide"
 echo ""
 echo "  # View logs"
 echo "  kubectl logs -n $NAMESPACE -l app.kubernetes.io/name=xroad-central-server -f"
@@ -200,6 +244,9 @@ echo "  kubectl logs -n $NAMESPACE -l app.kubernetes.io/name=xroad-security-serv
 echo ""
 echo "  # Check services"
 echo "  kubectl get svc -n $NAMESPACE"
+echo ""
+echo "  # Check node resources"
+echo "  kubectl describe nodes"
 echo ""
 echo "  # Uninstall (if needed)"
 echo "  helm uninstall $RELEASE_NAME -n $NAMESPACE"

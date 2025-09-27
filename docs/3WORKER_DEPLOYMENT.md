@@ -77,7 +77,7 @@ chmod +x deploy-3worker.sh
 ```bash
 # Thêm Helm repositories
 helm repo add postgres-operator https://opensource.zalando.com/postgres-operator/charts/postgres-operator
-helm repo add postgres-operator-ui https://opensource.zalando.com/postgres-operator/charts/postgres-operator-ui
+helm repo add postgres-operator-ui-charts https://opensource.zalando.com/postgres-operator/charts/postgres-operator-ui
 helm repo update
 
 # Triển khai PostgreSQL Operator
