@@ -85,10 +85,10 @@ RUN { nginx -s stop ||:; } \
 ARG USER_PASSWD=secret
 RUN useradd xrd-sys && adduser xrd-sys xroad-system-administrator && sh -c "echo 'xrd-sys:$USER_PASSWD' | chpasswd"
 
-COPY --chown=xroad:xroad files/etc /etc/
+COPY --chown=xroad:xroad Docker/centralserver/files/etc /etc/
 
-COPY files/cs-entrypoint.sh /root/entrypoint.sh
-COPY --chown=root:root files/cs-xroad.conf /etc/supervisor/conf.d/xroad.conf
+COPY Docker/centralserver/files/cs-entrypoint.sh /root/entrypoint.sh
+COPY --chown=root:root Docker/centralserver/files/cs-xroad.conf /etc/supervisor/conf.d/xroad.conf
 CMD ["/root/entrypoint.sh"]
 
 VOLUME ["/etc/xroad", "/var/lib/xroad", "/var/lib/postgresql/16/main/"]

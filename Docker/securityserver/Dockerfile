@@ -89,14 +89,14 @@ RUN useradd xrd-sec && adduser xrd-sec xroad-security-officer && sh -c "echo 'xr
     && useradd xrd-obs && adduser xrd-obs xroad-securityserver-observer && sh -c "echo 'xrd-obs:$USER_PASSWD' | chpasswd" \
     && adduser xroad softhsm
 
-COPY --chown=xroad:xroad files/etc /etc/
+COPY --chown=xroad:xroad Docker/securityserver/files/etc /etc/
 COPY --chown=xroad:xroad build/libs /usr/share/xroad/jlib/
 
-COPY files/ss-entrypoint.sh /root/entrypoint.sh
-COPY --chown=xroad:xroad files/override-docker.ini /etc/xroad/conf.d/
-COPY --chown=root:root files/ss-xroad.conf /etc/supervisor/conf.d/xroad.conf
-COPY --chown=root:root files/ss-hwtoken-xroad.conf /etc/supervisor/conf.d/hwtoken-xroad.conf
-COPY --chown=root:root files/ss-hwtoken-login-inactive-token.sh /usr/share/xroad/autologin/login-inactive-token.sh
+COPY Docker/securityserver/files/ss-entrypoint.sh /root/entrypoint.sh
+COPY --chown=xroad:xroad Docker/securityserver/files/override-docker.ini /etc/xroad/conf.d/
+COPY --chown=root:root Docker/securityserver/files/ss-xroad.conf /etc/supervisor/conf.d/xroad.conf
+COPY --chown=root:root Docker/securityserver/files/ss-hwtoken-xroad.conf /etc/supervisor/conf.d/hwtoken-xroad.conf
+COPY --chown=root:root Docker/securityserver/files/ss-hwtoken-login-inactive-token.sh /usr/share/xroad/autologin/login-inactive-token.sh
 RUN chmod 755 /usr/share/xroad/autologin/login-inactive-token.sh
 
 CMD ["/root/entrypoint.sh"]
