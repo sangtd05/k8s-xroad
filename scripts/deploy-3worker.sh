@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# X-Road Helm Deployment Script for 3 Worker Nodes Cluster
+# X-Road Deployment Script for 3 Worker Nodes Cluster
 # This script deploys X-Road with optimal distribution across 3 worker nodes
 
 set -e
@@ -15,7 +15,7 @@ NC='\033[0m' # No Color
 # Default values
 NAMESPACE="xroad"
 RELEASE_NAME="xroad"
-VALUES_FILE="examples/xroad-3worker-values.yaml"
+VALUES_FILE="../examples/xroad-3worker-values.yaml"
 DRY_RUN=false
 UPGRADE=false
 
@@ -43,7 +43,7 @@ show_usage() {
     echo "Options:"
     echo "  -n, --namespace NAME     Kubernetes namespace (default: xroad)"
     echo "  -r, --release NAME       Helm release name (default: xroad)"
-    echo "  -f, --values FILE        Values file (default: xroad-3worker-values.yaml)"
+    echo "  -f, --values FILE        Values file (default: ../examples/xroad-3worker-values.yaml)"
     echo "  -d, --dry-run            Dry run mode"
     echo "  -u, --upgrade            Upgrade existing release"
     echo "  -h, --help               Show this help message"
@@ -142,23 +142,8 @@ helm repo add postgres-operator-ui-charts https://opensource.zalando.com/postgre
 helm repo update
 print_success "Helm repositories added and updated"
 
-# Deploy PostgreSQL Operator first
-print_status "Deploying PostgreSQL Operator..."
-helm upgrade postgres-operator postgres-operator/postgres-operator \
-    --install \
-    --create-namespace \
-    --namespace postgres-operator \
-    --wait \
-    --timeout 5m
-
-print_status "Deploying PostgreSQL Operator UI..."
-helm upgrade postgres-operator-ui postgres-operator-ui/postgres-operator-ui \
-    --install \
-    --namespace postgres-operator \
-    --wait \
-    --timeout 5m
-
-print_success "PostgreSQL Operator deployed successfully"
+# Note: PostgreSQL Operator will be deployed as dependency of X-Road chart
+print_status "PostgreSQL Operator will be deployed as dependency of X-Road chart"
 
 # Prepare Helm command
 HELM_CMD="helm"
@@ -182,18 +167,11 @@ print_status "  - Central Server + PostgreSQL: k8s-worker-1"
 print_status "  - Security Server Primary: k8s-worker-2"
 print_status "  - Security Server Secondary: k8s-worker-3"
 
-# Use default values if custom values file doesn't exist
-if [ ! -f "$VALUES_FILE" ]; then
-    print_warning "Custom values file not found: $VALUES_FILE"
-    print_status "Using default values.yaml"
-    VALUES_FILE="../values.yaml"
-fi
-
 $HELM_CMD "$RELEASE_NAME" ../helm/xroad \
     --namespace "$NAMESPACE" \
     --values "$VALUES_FILE" \
     --wait \
-    --timeout 15m
+    --timeout 20m
 
 if [ "$DRY_RUN" = true ]; then
     print_success "Dry run completed successfully"
