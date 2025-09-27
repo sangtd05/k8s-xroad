@@ -1,14 +1,12 @@
 ---
-# Default values for xroad.
+# X-Road deployment configuration for 3 worker nodes cluster
 
 # Global configuration
 global:
-  # Instance identifier for X-Road
   instanceIdentifier: "EE"
-  # Namespace for all components
   namespace: "xroad"
 
-# Central Server configuration
+# Central Server configuration - Deploy on worker-1
 centralServer:
   enabled: true
   image:
@@ -16,21 +14,18 @@ centralServer:
     tag: "7.6.0"
     pullPolicy: Always
   
-  # Central server ports
   ports:
     admin: 4000
     management: 4001
     registration: 4002
     postgres: 5432
   
-  # Service configuration
   service:
     type: NodePort
     adminNodePort: 30060
     managementNodePort: 30061
     registrationNodePort: 30062
   
-  # Resources
   resources:
     limits:
       cpu: 2000m
@@ -39,20 +34,17 @@ centralServer:
       cpu: 500m
       memory: 2000Mi
   
-  # Persistence
   persistence:
     enabled: true
     storageClass: ""
     size: 10Gi
   
-  # Node selector for Central Server
-  nodeSelector: {}
-  # nodeSelector:
-  #   kubernetes.io/hostname: k8s-worker-1
+  # Node affinity to deploy on worker-1
+  nodeSelector:
+    kubernetes.io/hostname: k8s-worker-1
   
-  # Environment variables
   env:
-    tokenPIN: ""
+    tokenPIN: "1234"
     adminUser: "xrd-sys"
     adminPassword: "secret"
 
@@ -65,10 +57,9 @@ securityServer:
     secondaryTag: "7.6.1-secondary-ee"
     pullPolicy: Always
   
-  # Number of secondary servers
-  secondaryReplicaCount: 2
+  # Deploy primary on worker-2, secondary on worker-3
+  secondaryReplicaCount: 1
   
-  # Service configuration
   service:
     type: NodePort
     adminNodePort: 30050
@@ -77,7 +68,6 @@ securityServer:
     ocspNodePort: 30053
     healthNodePort: 30054
   
-  # Resources
   resources:
     limits:
       cpu: 2000m
@@ -86,41 +76,34 @@ securityServer:
       cpu: 500m
       memory: 2000Mi
   
-  # Persistence
   persistence:
     etcVolumeSize: 100Mi
     libVolumeSize: 1000Mi
-  
-  # Node selector for Security Server
-  nodeSelector: {}
-  # nodeSelector:
-  #   kubernetes.io/hostname: k8s-worker-2
 
 # PostgreSQL Operator configuration
 postgresOperator:
   enabled: true
-  # Use default values from postgres-operator chart
 
 postgresOperatorUI:
   enabled: true
-  # Use default values from postgres-operator-ui chart
 
-# PostgreSQL cluster configuration
+# PostgreSQL cluster configuration - Deploy on worker-1 (same as Central Server)
 postgresql:
   enabled: true
-  # Database configuration
   database:
     name: "xroad"
     user: "xroad"
-    password: "xroad"
+    password: "xroad123"
   
-  # Storage configuration
+  # Deploy on worker-1 for better performance with Central Server
+  nodeSelector:
+    kubernetes.io/hostname: k8s-worker-1
+  
   persistence:
     enabled: true
     storageClass: ""
     size: 20Gi
   
-  # Resources
   resources:
     limits:
       cpu: 1000m
@@ -129,15 +112,8 @@ postgresql:
       cpu: 250m
       memory: 1000Mi
   
-  # Node selector for PostgreSQL
-  nodeSelector: {}
-  # nodeSelector:
-  #   kubernetes.io/hostname: k8s-worker-1
-  
-  # Backup configuration
   backup:
-    enabled: true
-    # S3 configuration for backups
+    enabled: false
     s3:
       bucket: ""
       region: ""
@@ -151,14 +127,12 @@ networkPolicy:
 
 # Secrets configuration
 secrets:
-  # Environment secret for X-Road
   envSecretName: ""
   envSecret:
-    tokenPIN: ""
+    tokenPIN: "1234"
     adminUserName: "xrd-sys"
     adminUserPassword: "secret"
   
-  # SSH secret for configuration replication
   sshSecretName: ""
   sshSecret:
     privateKey: ""
@@ -179,16 +153,15 @@ ingress:
             port: 4000
   tls: []
 
-# Pod Anti-Affinity for High Availability
-podAntiAffinity:
-  enabled: true
-  type: "preferredDuringSchedulingIgnoredDuringExecution"
-
 # Monitoring configuration
 monitoring:
   enabled: false
-  # Prometheus service monitor
   serviceMonitor:
     enabled: false
     interval: 30s
     scrapeTimeout: 10s
+
+# Pod Anti-Affinity for High Availability
+podAntiAffinity:
+  enabled: true
+  type: "preferredDuringSchedulingIgnoredDuringExecution"

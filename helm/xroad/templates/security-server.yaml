@@ -53,6 +53,26 @@ spec:
         app.kubernetes.io/instance: {{ .Release.Name }}
         app.kubernetes.io/component: primary
     spec:
+      {{- if .Values.securityServer.nodeSelector }}
+      nodeSelector:
+        {{- toYaml .Values.securityServer.nodeSelector | nindent 8 }}
+      {{- end }}
+      {{- if .Values.podAntiAffinity.enabled }}
+      affinity:
+        podAntiAffinity:
+          {{- if eq .Values.podAntiAffinity.type "requiredDuringSchedulingIgnoredDuringExecution" }}
+          requiredDuringSchedulingIgnoredDuringExecution:
+          {{- else }}
+          preferredDuringSchedulingIgnoredDuringExecution:
+          {{- end }}
+          - labelSelector:
+              matchExpressions:
+              - key: app.kubernetes.io/name
+                operator: In
+                values:
+                - {{ include "xroad.name" . }}-security-server
+            topologyKey: kubernetes.io/hostname
+      {{- end }}
       containers:
       - name: security-server
         image: "{{ .Values.securityServer.image.repository }}:{{ .Values.securityServer.image.primaryTag }}"

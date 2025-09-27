@@ -27,6 +27,10 @@ spec:
         app.kubernetes.io/name: {{ include "xroad.name" . }}-central-server
         app.kubernetes.io/instance: {{ .Release.Name }}
     spec:
+      {{- if .Values.centralServer.nodeSelector }}
+      nodeSelector:
+        {{- toYaml .Values.centralServer.nodeSelector | nindent 8 }}
+      {{- end }}
       containers:
       - name: central-server
         image: "{{ .Values.centralServer.image.repository }}:{{ .Values.centralServer.image.tag }}"
