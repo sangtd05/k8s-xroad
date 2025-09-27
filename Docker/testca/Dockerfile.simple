@@ -1,0 +1,43 @@
+FROM ubuntu:24.04
+
+# Install dependencies
+RUN apt-get update && apt-get install -y \
+    supervisor \
+    nginx \
+    python3 \
+    python3-pip \
+    openssl \
+    ca-certificates \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
+
+# Setup TEST-CA
+RUN useradd -m ca -U \
+    && useradd -G ca ocsp
+
+# Create directories
+RUN mkdir -p /home/ca/CA /home/ca/TSA /var/log
+
+# Copy CA files
+COPY Docker/testca/files/init.sh /home/ca/CA/
+COPY Docker/testca/files/ca.py /home/ca/CA/
+
+# Set permissions
+RUN chown -R ca:ca /home/ca/CA \
+    && chmod 0700 /home/ca/CA/init.sh \
+    && chmod 0754 /home/ca/CA/ca.py
+
+# Copy entrypoint and supervisor config
+COPY Docker/testca/files/ca-entrypoint.sh /root/entrypoint.sh
+COPY --chown=root:root Docker/testca/files/testca.conf /etc/supervisor/conf.d/testca.conf
+
+# Setup nginx
+RUN echo 'server { listen 8888; location / { return 200 "Test CA is running"; } }' > /etc/nginx/sites-available/default \
+    && rm -f /etc/nginx/sites-enabled/default \
+    && ln -s /etc/nginx/sites-available/default /etc/nginx/sites-enabled/default
+
+# Expose ports
+EXPOSE 8888 9998
+
+# Set entrypoint
+CMD ["/root/entrypoint.sh"]

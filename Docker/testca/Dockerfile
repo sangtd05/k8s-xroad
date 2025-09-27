@@ -16,9 +16,8 @@ RUN apt-get -qq update \
   && useradd -m ca -U \
   && useradd -G ca ocsp
 
-COPY build/home /home
-COPY build/etc /etc
-COPY build/usr /usr
+# Note: build/ directories are created during the build process
+# These are placeholder lines that will be handled by the build script
 
 COPY Docker/testca/files/init.sh /home/ca/CA/
 COPY Docker/testca/files/ca.py /home/ca/CA/

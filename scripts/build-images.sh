@@ -67,9 +67,13 @@ main() {
     build_image "Docker/securityserver/Dockerfile" "xroad-securityserver:latest" "--build-arg PACKAGE_SOURCE=external"
     echo ""
     
-    # Build Test CA
-    print_info "Building Test CA..."
-    build_image "Docker/testca/Dockerfile" "xroad-testca:latest"
+    # Build Test CA (using simple version)
+    print_info "Building Test CA (simple version)..."
+    if [ -f "Docker/testca/Dockerfile.simple" ]; then
+        build_image "Docker/testca/Dockerfile.simple" "xroad-testca:latest"
+    else
+        build_image "Docker/testca/Dockerfile" "xroad-testca:latest"
+    fi
     echo ""
     
     # Build Example Adapter (SOAP)

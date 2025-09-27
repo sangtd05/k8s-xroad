@@ -90,7 +90,6 @@ RUN useradd xrd-sec && adduser xrd-sec xroad-security-officer && sh -c "echo 'xr
     && adduser xroad softhsm
 
 COPY --chown=xroad:xroad Docker/securityserver/files/etc /etc/
-COPY --chown=xroad:xroad build/libs /usr/share/xroad/jlib/
 
 COPY Docker/securityserver/files/ss-entrypoint.sh /root/entrypoint.sh
 COPY --chown=xroad:xroad Docker/securityserver/files/override-docker.ini /etc/xroad/conf.d/
