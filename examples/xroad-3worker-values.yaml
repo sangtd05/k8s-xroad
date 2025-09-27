@@ -36,7 +36,7 @@ centralServer:
 
   persistence:
     enabled: true
-    storageClass: ""
+    storageClass: "xroad-storage"
     size: 10Gi
 
   # Node affinity to deploy on worker-1
