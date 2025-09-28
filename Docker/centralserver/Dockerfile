@@ -1,7 +1,7 @@
 # syntax=docker/dockerfile:1
 
 # internal or external
-ARG PACKAGE_SOURCE=external
+ARG PACKAGE_SOURCE
 
 FROM ubuntu:24.04 AS base
 ENV DEBIAN_FRONTEND=noninteractive
@@ -22,9 +22,10 @@ RUN apt-get -qq update \
 FROM base AS centralserver-external
 ARG DIST=jammy-snapshot
 ARG REPO=https://artifactory.niis.org/xroad-snapshot-deb
+ARG REPO_KEY=https://artifactory.niis.org/api/gpg/key/public
 ARG COMPONENT=main
 
-ADD ["https://artifactory.niis.org/api/gpg/key/public","/tmp/repokey.gpg"]
+ADD ["$REPO_KEY","/tmp/repokey.gpg"]
 ADD ["${REPO}/dists/${DIST}/Release","/tmp/Release"]
 RUN echo "deb $REPO $DIST $COMPONENT" >/etc/apt/sources.list.d/xroad.list \
   && apt-key add '/tmp/repokey.gpg' \
@@ -81,13 +82,13 @@ RUN { nginx -s stop ||:; } \
   && rm -rf var/lib/apt/lists/*
 
 # Setup additional users
-ARG USER_PASSWD
-RUN useradd xrd-sys && adduser xrd-sys xroad-system-administrator && sh -c "echo 'xrd-sys:${USER_PASSWD:-secret}' | chpasswd"
+ARG USER_PASSWD=secret
+RUN useradd xrd-sys && adduser xrd-sys xroad-system-administrator && sh -c "echo 'xrd-sys:$USER_PASSWD' | chpasswd"
 
-COPY --chown=xroad:xroad Docker/centralserver/files/etc /etc/
+COPY --chown=xroad:xroad files/etc /etc/
 
-COPY Docker/centralserver/files/cs-entrypoint.sh /root/entrypoint.sh
-COPY --chown=root:root Docker/centralserver/files/cs-xroad.conf /etc/supervisor/conf.d/xroad.conf
+COPY files/cs-entrypoint.sh /root/entrypoint.sh
+COPY --chown=root:root files/cs-xroad.conf /etc/supervisor/conf.d/xroad.conf
 CMD ["/root/entrypoint.sh"]
 
 VOLUME ["/etc/xroad", "/var/lib/xroad", "/var/lib/postgresql/16/main/"]

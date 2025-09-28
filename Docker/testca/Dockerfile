@@ -16,11 +16,12 @@ RUN apt-get -qq update \
   && useradd -m ca -U \
   && useradd -G ca ocsp
 
-# Note: build/ directories are created during the build process
-# These are placeholder lines that will be handled by the build script
+COPY build/home /home
+COPY build/etc /etc
+COPY build/usr /usr
 
-COPY Docker/testca/files/init.sh /home/ca/CA/
-COPY Docker/testca/files/ca.py /home/ca/CA/
+COPY files/init.sh /home/ca/CA/
+COPY files/ca.py /home/ca/CA/
 
 RUN chown -R ca:ca /home/ca/CA \
   && find /home/ca/TSA -type f -exec chmod 0664 {} + \
@@ -33,8 +34,8 @@ RUN chown -R ca:ca /home/ca/CA \
   && chmod 0754 /home/ca/CA/ca.py \
   && chmod 0754 /home/ca/CA/sign_req.sh
 
-COPY Docker/testca/files/ca-entrypoint.sh /root/entrypoint.sh
-COPY --chown=root:root Docker/testca/files/testca.conf /etc/supervisor/conf.d/testca.conf
+COPY files/ca-entrypoint.sh /root/entrypoint.sh
+COPY --chown=root:root files/testca.conf /etc/supervisor/conf.d/testca.conf
 
 RUN sed -i "s/run\/uwsgi\/acme.sock/var\/www\/acme2certifier\/acme.sock/g" /var/www/acme2certifier/examples/nginx/nginx_acme_srv.conf \
     && sed -i "s/80/8887/g" /var/www/acme2certifier/examples/nginx/nginx_acme_srv.conf \

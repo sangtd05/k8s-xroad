@@ -1,7 +1,7 @@
 # syntax=docker/dockerfile:1
 
 # internal or external
-ARG PACKAGE_SOURCE=external
+ARG PACKAGE_SOURCE
 
 FROM ubuntu:24.04 AS base
 ENV DEBIAN_FRONTEND=noninteractive
@@ -26,9 +26,10 @@ FROM base AS securityserver-external
 
 ARG DIST=jammy-snapshot
 ARG REPO=https://artifactory.niis.org/xroad-snapshot-deb
+ARG REPO_KEY=https://artifactory.niis.org/api/gpg/key/public
 ARG COMPONENT=main
 
-ADD ["https://artifactory.niis.org/api/gpg/key/public","/tmp/repokey.gpg"]
+ADD ["$REPO_KEY","/tmp/repokey.gpg"]
 ADD ["${REPO}/dists/${DIST}/Release","/tmp/Release"]
 RUN echo "deb $REPO $DIST $COMPONENT" >/etc/apt/sources.list.d/xroad.list \
     && apt-key add '/tmp/repokey.gpg' \
@@ -80,22 +81,22 @@ RUN mkdir -p /root/etc/xroad \
     && cp /root/VERSION /etc/xroad/VERSION
 
 # Setup users
-ARG USER_PASSWD
-RUN groupadd softhsm \
-    && useradd xrd-sec && adduser xrd-sec xroad-security-officer && sh -c "echo 'xrd-sec:${USER_PASSWD:-secret}' | chpasswd" \
-    && useradd xrd-reg && adduser xrd-reg xroad-registration-officer && sh -c "echo 'xrd-reg:${USER_PASSWD:-secret}' | chpasswd" \
-    && useradd xrd-ser && adduser xrd-ser xroad-service-administrator && sh -c "echo 'xrd-ser:${USER_PASSWD:-secret}' | chpasswd" \
-    && useradd xrd-sys && adduser xrd-sys xroad-system-administrator && sh -c "echo 'xrd-sys:${USER_PASSWD:-secret}' | chpasswd" \
-    && useradd xrd-obs && adduser xrd-obs xroad-securityserver-observer && sh -c "echo 'xrd-obs:${USER_PASSWD:-secret}' | chpasswd" \
+ARG USER_PASSWD=secret
+RUN useradd xrd-sec && adduser xrd-sec xroad-security-officer && sh -c "echo 'xrd-sec:$USER_PASSWD' | chpasswd" \
+    && useradd xrd-reg && adduser xrd-reg xroad-registration-officer && sh -c "echo 'xrd-reg:$USER_PASSWD' | chpasswd" \
+    && useradd xrd-ser && adduser xrd-ser xroad-service-administrator && sh -c "echo 'xrd-ser:$USER_PASSWD' | chpasswd" \
+    && useradd xrd-sys && adduser xrd-sys xroad-system-administrator && sh -c "echo 'xrd-sys:$USER_PASSWD' | chpasswd" \
+    && useradd xrd-obs && adduser xrd-obs xroad-securityserver-observer && sh -c "echo 'xrd-obs:$USER_PASSWD' | chpasswd" \
     && adduser xroad softhsm
 
-COPY --chown=xroad:xroad Docker/securityserver/files/etc /etc/
+COPY --chown=xroad:xroad files/etc /etc/
+COPY --chown=xroad:xroad build/libs /usr/share/xroad/jlib/
 
-COPY Docker/securityserver/files/ss-entrypoint.sh /root/entrypoint.sh
-COPY --chown=xroad:xroad Docker/securityserver/files/override-docker.ini /etc/xroad/conf.d/
-COPY --chown=root:root Docker/securityserver/files/ss-xroad.conf /etc/supervisor/conf.d/xroad.conf
-COPY --chown=root:root Docker/securityserver/files/ss-hwtoken-xroad.conf /etc/supervisor/conf.d/hwtoken-xroad.conf
-COPY --chown=root:root Docker/securityserver/files/ss-hwtoken-login-inactive-token.sh /usr/share/xroad/autologin/login-inactive-token.sh
+COPY files/ss-entrypoint.sh /root/entrypoint.sh
+COPY --chown=xroad:xroad files/override-docker.ini /etc/xroad/conf.d/
+COPY --chown=root:root files/ss-xroad.conf /etc/supervisor/conf.d/xroad.conf
+COPY --chown=root:root files/ss-hwtoken-xroad.conf /etc/supervisor/conf.d/hwtoken-xroad.conf
+COPY --chown=root:root files/ss-hwtoken-login-inactive-token.sh /usr/share/xroad/autologin/login-inactive-token.sh
 RUN chmod 755 /usr/share/xroad/autologin/login-inactive-token.sh
 
 CMD ["/root/entrypoint.sh"]

@@ -11,17 +11,17 @@
 FROM eclipse-temurin:11 AS build-xrd4j-lib
 RUN apt-get update && apt-get install -y git
 WORKDIR /app
-ENV GRADLE_OPTS="-Dorg.gradle.daemon=false -Dmaven.repo.local=/app/.m2_repository -Dgradle.user.home=/app/.gradle_home -Dorg.gradle.internal.http.connectionTimeout=300000 -Dorg.gradle.internal.http.socketTimeout=300000"
+ENV GRADLE_OPTS="-Dorg.gradle.daemon=false -Dmaven.repo.local=/app/.m2_repository -Dgradle.user.home=/app/.gradle_home"
 RUN <<EOF
   set -ex
   git clone https://github.com/nordic-institute/xrd4j.git
   cd xrd4j/src
-  ./gradlew assemble publishToMavenLocal --info --stacktrace
+  ./gradlew assemble publishToMavenLocal
 EOF
 
 #################################################################################
 FROM eclipse-temurin:17 AS build-example-adapter
-ENV GRADLE_OPTS="-Dorg.gradle.daemon=false -Dmaven.repo.local=/app/.m2_repository -Dgradle.user.home=/app/.gradle_home -Dorg.gradle.internal.http.connectionTimeout=300000 -Dorg.gradle.internal.http.socketTimeout=300000"
+ENV GRADLE_OPTS="-Dorg.gradle.daemon=false -Dmaven.repo.local=/app/.m2_repository -Dgradle.user.home=/app/.gradle_home"
 RUN --mount=type=cache,from=build-xrd4j-lib,source=/app,target=/app <<EOF
     set -ex
     cd /app/xrd4j/example-adapter
