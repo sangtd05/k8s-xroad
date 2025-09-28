@@ -163,10 +163,7 @@ start_services() {
         missing_images+=("xroad-example-adapter:latest")
     fi
     
-    # Kiểm tra xroad-example-restapi nếu có
-    if ! docker image inspect xroad-example-restapi:latest &> /dev/null; then
-        print_warning "xroad-example-restapi:latest không tồn tại, sẽ sử dụng external image"
-    fi
+    # isopenapi service sử dụng wiremock image (đã được pull ở trên)
     
     if [ ${#missing_images[@]} -gt 0 ]; then
         print_warning "Một số images chưa được build:"

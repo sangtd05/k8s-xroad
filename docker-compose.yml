@@ -113,18 +113,20 @@ services:
       timeout: 10s
       retries: 5
 
-  # Information System - OpenAPI Service
+  # Information System - OpenAPI Service (tạm thời sử dụng wiremock)
   isopenapi:
-    image: ${IS_OPENAPI_IMG}
+    image: wiremock/wiremock:latest
     container_name: xroad-isopenapi
     hostname: isopenapi
     restart: unless-stopped
     ports:
       - "${IS_OPENAPI_PORT:-8082}:8080"   # OpenAPI Service
+    volumes:
+      - ./wiremock_mappings:/home/wiremock/mappings
     networks:
       - xroad-network
     healthcheck:
-      test: ["CMD", "curl", "-f", "-k", "http://localhost:8080/v3/api-docs"]
+      test: ["CMD", "curl", "-f", "-k", "http://localhost:8080/__admin/health"]
       interval: 30s
       timeout: 10s
       retries: 5
