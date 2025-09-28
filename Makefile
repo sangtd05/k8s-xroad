@@ -162,7 +162,7 @@ check: ## Kiểm tra cấu hình và prerequisites
 # Cập nhật
 update: ## Cập nhật images và khởi động lại
 	@echo "🔄 Cập nhật images và khởi động lại..."
-	@if command -v docker-compose &> /dev/null; then docker-compose pull; else docker compose pull; fi
+	@echo "⚠️  Lưu ý: Hệ thống sử dụng images local, không pull từ registry"
 	@make restart
 
 # Test

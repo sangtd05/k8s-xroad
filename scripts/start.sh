@@ -145,9 +145,43 @@ restart_system() {
 start_services() {
     print_info "Khởi động các services..."
     
-    # Pull images
-    print_info "Tải Docker images..."
-    $DOCKER_COMPOSE_CMD -f "$COMPOSE_FILE" --env-file "$ENV_FILE" pull
+    # Kiểm tra images local trước
+    print_info "Kiểm tra Docker images local..."
+    local missing_images=()
+    
+    # Kiểm tra các images local cần thiết
+    if ! docker image inspect xroad-centralserver:latest &> /dev/null; then
+        missing_images+=("xroad-centralserver:latest")
+    fi
+    if ! docker image inspect xroad-securityserver:latest &> /dev/null; then
+        missing_images+=("xroad-securityserver:latest")
+    fi
+    if ! docker image inspect xroad-testca:latest &> /dev/null; then
+        missing_images+=("xroad-testca:latest")
+    fi
+    if ! docker image inspect xroad-example-adapter:latest &> /dev/null; then
+        missing_images+=("xroad-example-adapter:latest")
+    fi
+    
+    # Kiểm tra xroad-example-restapi nếu có
+    if ! docker image inspect xroad-example-restapi:latest &> /dev/null; then
+        print_warning "xroad-example-restapi:latest không tồn tại, sẽ sử dụng external image"
+    fi
+    
+    if [ ${#missing_images[@]} -gt 0 ]; then
+        print_warning "Một số images chưa được build:"
+        for img in "${missing_images[@]}"; do
+            echo "  - $img"
+        done
+        print_info "Vui lòng chạy 'make build' trước khi khởi động hệ thống"
+        exit 1
+    fi
+    
+    # Pull external images cần thiết
+    print_info "Tải external images từ Docker Hub..."
+    docker pull wiremock/wiremock:latest || print_warning "Không thể tải wiremock/wiremock:latest"
+    docker pull axllent/mailpit:latest || print_warning "Không thể tải axllent/mailpit:latest"
+    docker pull nginx:alpine || print_warning "Không thể tải nginx:alpine"
     
     # Start services
     print_info "Khởi động containers..."
