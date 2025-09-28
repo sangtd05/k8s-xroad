@@ -16,6 +16,18 @@ NC='\033[0m' # No Color
 ENV_FILE=".env"
 COMPOSE_FILE="docker-compose.yml"
 
+# Hàm xác định docker compose command
+get_docker_compose_cmd() {
+    if command -v docker-compose &> /dev/null; then
+        echo "docker-compose"
+    elif docker compose version &> /dev/null; then
+        echo "docker compose"
+    else
+        print_error "Docker Compose không được cài đặt"
+        exit 1
+    fi
+}
+
 # Hàm in thông báo
 print_info() {
     echo -e "${BLUE}[INFO]${NC} $1"
@@ -39,7 +51,8 @@ check_service() {
     local display_name=$2
     local port=$3
     
-    if docker-compose -f "$COMPOSE_FILE" --env-file "$ENV_FILE" ps "$service_name" | grep -q "Up"; then
+    DOCKER_COMPOSE_CMD=$(get_docker_compose_cmd)
+    if $DOCKER_COMPOSE_CMD -f "$COMPOSE_FILE" --env-file "$ENV_FILE" ps "$service_name" | grep -q "Up"; then
         print_success "$display_name: Running (Port: $port)"
         return 0
     else
@@ -70,7 +83,8 @@ show_detailed_info() {
     
     # Container status
     print_info "Container Status:"
-    docker-compose -f "$COMPOSE_FILE" --env-file "$ENV_FILE" ps
+    DOCKER_COMPOSE_CMD=$(get_docker_compose_cmd)
+    $DOCKER_COMPOSE_CMD -f "$COMPOSE_FILE" --env-file "$ENV_FILE" ps
     echo ""
     
     # Resource usage
@@ -94,12 +108,13 @@ show_logs() {
     local service_name=$1
     local lines=${2:-50}
     
+    DOCKER_COMPOSE_CMD=$(get_docker_compose_cmd)
     if [ -n "$service_name" ]; then
         print_info "Logs for $service_name (last $lines lines):"
-        docker-compose -f "$COMPOSE_FILE" --env-file "$ENV_FILE" logs --tail="$lines" "$service_name"
+        $DOCKER_COMPOSE_CMD -f "$COMPOSE_FILE" --env-file "$ENV_FILE" logs --tail="$lines" "$service_name"
     else
         print_info "System logs (last $lines lines):"
-        docker-compose -f "$COMPOSE_FILE" --env-file "$ENV_FILE" logs --tail="$lines"
+        $DOCKER_COMPOSE_CMD -f "$COMPOSE_FILE" --env-file "$ENV_FILE" logs --tail="$lines"
     fi
 }
 

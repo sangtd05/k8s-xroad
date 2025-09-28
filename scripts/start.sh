@@ -36,6 +36,18 @@ print_error() {
     echo -e "${RED}[ERROR]${NC} $1"
 }
 
+# Hàm xác định docker compose command
+get_docker_compose_cmd() {
+    if command -v docker-compose &> /dev/null; then
+        echo "docker-compose"
+    elif docker compose version &> /dev/null; then
+        echo "docker compose"
+    else
+        print_error "Docker Compose không được cài đặt"
+        exit 1
+    fi
+}
+
 # Hàm kiểm tra prerequisites
 check_prerequisites() {
     print_info "Kiểm tra prerequisites..."
@@ -46,11 +58,9 @@ check_prerequisites() {
         exit 1
     fi
     
-    # Kiểm tra Docker Compose
-    if ! command -v docker-compose &> /dev/null && ! docker compose version &> /dev/null; then
-        print_error "Docker Compose không được cài đặt"
-        exit 1
-    fi
+    # Xác định docker compose command
+    DOCKER_COMPOSE_CMD=$(get_docker_compose_cmd)
+    print_info "Sử dụng Docker Compose command: $DOCKER_COMPOSE_CMD"
     
     # Kiểm tra file .env
     if [ ! -f "$ENV_FILE" ]; then
@@ -137,11 +147,11 @@ start_services() {
     
     # Pull images
     print_info "Tải Docker images..."
-    docker-compose -f "$COMPOSE_FILE" --env-file "$ENV_FILE" pull
+    $DOCKER_COMPOSE_CMD -f "$COMPOSE_FILE" --env-file "$ENV_FILE" pull
     
     # Start services
     print_info "Khởi động containers..."
-    docker-compose -f "$COMPOSE_FILE" --env-file "$ENV_FILE" up -d
+    $DOCKER_COMPOSE_CMD -f "$COMPOSE_FILE" --env-file "$ENV_FILE" up -d
     
     print_success "Các services đã được khởi động"
 }
@@ -158,21 +168,21 @@ initialize_system() {
     print_info "Kiểm tra trạng thái các services..."
     
     # Central Server
-    if docker-compose -f "$COMPOSE_FILE" --env-file "$ENV_FILE" ps cs | grep -q "Up"; then
+    if $DOCKER_COMPOSE_CMD -f "$COMPOSE_FILE" --env-file "$ENV_FILE" ps cs | grep -q "Up"; then
         print_success "Central Server: Running"
     else
         print_error "Central Server: Failed"
     fi
     
     # Security Server
-    if docker-compose -f "$COMPOSE_FILE" --env-file "$ENV_FILE" ps ss0 | grep -q "Up"; then
+    if $DOCKER_COMPOSE_CMD -f "$COMPOSE_FILE" --env-file "$ENV_FILE" ps ss0 | grep -q "Up"; then
         print_success "Security Server: Running"
     else
         print_error "Security Server: Failed"
     fi
     
     # Test CA
-    if docker-compose -f "$COMPOSE_FILE" --env-file "$ENV_FILE" ps testca | grep -q "Up"; then
+    if $DOCKER_COMPOSE_CMD -f "$COMPOSE_FILE" --env-file "$ENV_FILE" ps testca | grep -q "Up"; then
         print_success "Test CA: Running"
     else
         print_error "Test CA: Failed"
@@ -201,9 +211,9 @@ show_access_info() {
     echo "  • Password: secret"
     echo ""
     echo "📝 Logs:"
-    echo "  • View logs:          docker-compose logs -f"
+    echo "  • View logs:          $DOCKER_COMPOSE_CMD logs -f"
     echo "  • Stop system:        ./scripts/stop.sh"
-    echo "  • Restart system:     ./scripts/restart.sh"
+    echo "  • Restart system:     ./scripts/start.sh --restart"
     echo ""
     print_warning "Lưu ý: Đây là chứng chỉ SSL tự ký, trình duyệt sẽ cảnh báo bảo mật."
 }

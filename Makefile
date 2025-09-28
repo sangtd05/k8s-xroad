@@ -129,12 +129,12 @@ restore: ## Restore backup (cần chỉ định BACKUP_NAME)
 # Dọn dẹp
 clean: ## Dọn dẹp hệ thống
 	@echo "🧹 Dọn dẹp hệ thống X-Road..."
-	@docker-compose down -v --remove-orphans
+	@if command -v docker-compose &> /dev/null; then docker-compose down -v --remove-orphans; else docker compose down -v --remove-orphans; fi
 	@docker system prune -f
 
 clean-all: ## Dọn dẹp hoàn toàn (cả images)
 	@echo "🧹 Dọn dẹp hoàn toàn hệ thống X-Road..."
-	@docker-compose down -v --remove-orphans
+	@if command -v docker-compose &> /dev/null; then docker-compose down -v --remove-orphans; else docker compose down -v --remove-orphans; fi
 	@docker system prune -a -f
 	@docker volume prune -f
 
@@ -154,7 +154,7 @@ build: ## Build Docker images từ thư mục Docker
 check: ## Kiểm tra cấu hình và prerequisites
 	@echo "✅ Kiểm tra cấu hình và prerequisites..."
 	@docker --version
-	@docker-compose --version
+	@if command -v docker-compose &> /dev/null; then docker-compose --version; else docker compose version; fi
 	@if [ ! -f ".env" ]; then echo "❌ File .env không tồn tại"; exit 1; fi
 	@if [ ! -f "docker-compose.yml" ]; then echo "❌ File docker-compose.yml không tồn tại"; exit 1; fi
 	@echo "✅ Tất cả prerequisites đã sẵn sàng"
@@ -162,7 +162,7 @@ check: ## Kiểm tra cấu hình và prerequisites
 # Cập nhật
 update: ## Cập nhật images và khởi động lại
 	@echo "🔄 Cập nhật images và khởi động lại..."
-	@docker-compose pull
+	@if command -v docker-compose &> /dev/null; then docker-compose pull; else docker compose pull; fi
 	@make restart
 
 # Test

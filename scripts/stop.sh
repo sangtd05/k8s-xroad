@@ -16,6 +16,18 @@ NC='\033[0m' # No Color
 ENV_FILE=".env"
 COMPOSE_FILE="docker-compose.yml"
 
+# Hàm xác định docker compose command
+get_docker_compose_cmd() {
+    if command -v docker-compose &> /dev/null; then
+        echo "docker-compose"
+    elif docker compose version &> /dev/null; then
+        echo "docker compose"
+    else
+        print_error "Docker Compose không được cài đặt"
+        exit 1
+    fi
+}
+
 # Hàm in thông báo
 print_info() {
     echo -e "${BLUE}[INFO]${NC} $1"
@@ -38,7 +50,8 @@ stop_services() {
     print_info "Dừng các services..."
     
     if [ -f "$COMPOSE_FILE" ]; then
-        docker-compose -f "$COMPOSE_FILE" --env-file "$ENV_FILE" down
+        DOCKER_COMPOSE_CMD=$(get_docker_compose_cmd)
+        $DOCKER_COMPOSE_CMD -f "$COMPOSE_FILE" --env-file "$ENV_FILE" down
         print_success "Các services đã được dừng"
     else
         print_error "File $COMPOSE_FILE không tồn tại"
@@ -55,7 +68,8 @@ clean_system() {
     
     if [[ $REPLY =~ ^[Yy]$ ]]; then
         print_info "Dừng và xóa containers..."
-        docker-compose -f "$COMPOSE_FILE" --env-file "$ENV_FILE" down -v --remove-orphans
+        DOCKER_COMPOSE_CMD=$(get_docker_compose_cmd)
+        $DOCKER_COMPOSE_CMD -f "$COMPOSE_FILE" --env-file "$ENV_FILE" down -v --remove-orphans
         
         print_info "Xóa volumes..."
         docker volume prune -f
@@ -75,7 +89,8 @@ show_status() {
     echo ""
     
     if [ -f "$COMPOSE_FILE" ]; then
-        docker-compose -f "$COMPOSE_FILE" --env-file "$ENV_FILE" ps
+        DOCKER_COMPOSE_CMD=$(get_docker_compose_cmd)
+        $DOCKER_COMPOSE_CMD -f "$COMPOSE_FILE" --env-file "$ENV_FILE" ps
     else
         print_error "File $COMPOSE_FILE không tồn tại"
     fi
