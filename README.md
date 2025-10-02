@@ -1,5 +1,3 @@
-# X-Road Development Environment
-
 This project provides containerized X-Road components that can be deployed using Docker Compose or LXD for development, testing, and learning purposes.
 
 ## Architecture Overview
@@ -15,14 +13,6 @@ This environment includes a complete X-Road ecosystem with the following compone
   - **ISOPENAPI** - OpenAPI 3.0 service example
 - **Mailpit** - Email testing server
 - **Hurl** - API testing framework
-
-## Start
-
-### Prerequisites
-
-- Docker 24.x+ and Docker Compose 2.24.x+
-- OR LXD with LXC (for native deployment)
-- Git
 
 ### Option 1: Docker Compose (Recommended)
 
@@ -86,7 +76,7 @@ cd development/native-lxd-stack
 | ISOPENAPI | OpenAPI Service | 4700 | http://localhost:4700 |
 | Mailpit | Email Testing | 8025 | http://localhost:8025 |
 
-## 🔧 Configuration
+## Configuration
 
 ### Environment Variables
 
@@ -133,29 +123,6 @@ docker compose run --rm hurl --insecure --variables-file /hurl-src/vars.env /hur
 - `test-proxy-rest.hurl` - REST API proxy tests
 - `test-proxy-soap.hurl` - SOAP API proxy tests
 - `perftest-ss0.hurl` - Performance testing
-
-## Security Features
-
-- **Certificate Management**: Automated certificate generation and signing
-- **Access Control**: Fine-grained permissions between subsystems
-- **Message Logging**: Comprehensive audit trails
-- **Encryption**: End-to-end message encryption
-- **Authentication**: Multi-factor authentication support
-
-## Development
-
-### Adding New Services
-
-1. Create a new service container in `Docker/test-services/`
-2. Add service configuration to `compose.yaml`
-3. Update port mappings in `compose.dev.yaml`
-4. Add service registration to `setup.hurl`
-
-### Customizing Configuration
-
-- **Central Server**: Modify `Docker/centralserver/files/`
-- **Security Server**: Modify `Docker/securityserver/files/`
-- **Test CA**: Modify `Docker/testca/files/`
 
 ## Monitoring and Debugging
 
