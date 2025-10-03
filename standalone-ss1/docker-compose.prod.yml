@@ -1,0 +1,105 @@
+version: '3.8'
+
+# Production configuration for SS1 standalone deployment
+# This configuration is optimized for production use
+
+services:
+  ss1:
+    image: ${SS_IMG:-ghcr.io/nordic-institute/xrddev-securityserver:latest}
+    container_name: ss1-production
+    environment:
+      - XROAD_TOKEN_PIN=${XROAD_TOKEN_PIN:-Secret1234}
+      - PROXY_JMX_PORT=4399
+      - SIGNER_JMX_PORT=4398
+    ports:
+      - "${SS1_FRONTEND_PORT:-4300}:4000"   # Frontend UI
+      - "${SS1_PROXY_PORT:-4310}:8080"      # Proxy port
+      - "${SS1_DB_PORT:-4320}:5432"         # Database
+    volumes:
+      - ss1_data:/var/lib/xroad
+      - ss1_config:/etc/xroad
+      - ss1_postgres:/var/lib/postgresql/16/main
+      - ss1_softhsm:/var/lib/softhsm/tokens
+      - ./init-token-and-run-entrypoint.sh:/usr/local/bin/init-token-and-run-entrypoint.sh:ro
+      # Mount SSL certificates if available
+      - ./ssl:/etc/ssl/xroad:ro
+    entrypoint: [ "/usr/local/bin/init-token-and-run-entrypoint.sh" ]
+    restart: unless-stopped
+    healthcheck:
+      interval: 30s
+      retries: 10
+      timeout: 10s
+      start_period: 60s
+      test: [ "CMD", "curl", "-f", "-k", "https://localhost:4000" ]
+    deploy:
+      resources:
+        reservations:
+          memory: 1G
+          cpus: '0.5'
+        limits:
+          memory: 4G
+          cpus: '2.0'
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    # Security settings
+    security_opt:
+      - no-new-privileges:true
+    read_only: false
+    tmpfs:
+      - /tmp
+      - /var/run
+    # Network configuration
+    networks:
+      - xroad-network
+
+  # Optional: Nginx reverse proxy for SSL termination
+  nginx:
+    image: nginx:alpine
+    container_name: ss1-nginx
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/ssl:/etc/nginx/ssl:ro
+    depends_on:
+      - ss1
+    restart: unless-stopped
+    networks:
+      - xroad-network
+
+volumes:
+  ss1_data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: /opt/xroad/ss1/data
+  ss1_config:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: /opt/xroad/ss1/config
+  ss1_postgres:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: /opt/xroad/ss1/postgres
+  ss1_softhsm:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: /opt/xroad/ss1/softhsm
+
+networks:
+  xroad-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16
