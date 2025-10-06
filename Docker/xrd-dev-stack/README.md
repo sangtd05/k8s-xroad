@@ -77,3 +77,83 @@ This script will do the following:
 * Copy the resulting Debian packages to their correct locations
 * Build the `centralserver`, `securityserver` and `testca` Docker images
 * Start the Docker Compose environment
+
+## Multi-host deployment (split SS1 on another machine)
+
+This repository includes example compose files to run CS/SS0/services (Site A) and SS1 (Site B) on separate hosts.
+
+### 1) Networking prerequisites
+
+- Ensure Site A and Site B can reach each other via IP/DNS and that firewalls allow the following inbound ports:
+  - Site A: `4100` (CS UI), `4200` (SS0 UI), `4210` (SS0 Proxy), plus sample services `4500/4600/4700` if used
+  - Site B: `4300` (SS1 UI), `4310` (SS1 Proxy)
+- Optionally create DNS records (e.g. `cs.local`, `ss0.local`, `ss1.local`) or update hosts files accordingly on both machines.
+
+### 2) Bring up Site A (CS, SS0, Services)
+
+On Site A host, from this directory:
+
+```bash
+docker compose -f compose.site-a.yaml up -d
+```
+
+Environment variables (optional):
+
+```bash
+export XROAD_TOKEN_PIN=Secret1234
+export CS_IMG=niis/xroad-centralserver:latest
+export SS_IMG=niis/xroad-security-server:latest
+export CA_IMG=... # testca image
+export IS_OPENAPI_IMG=... # example rest api image
+export IS_SOAP_IMG=...    # example soap adapter image
+```
+
+### 3) Bring up Site B (SS1)
+
+On Site B host:
+
+```bash
+docker compose -f compose.site-b.yaml up -d
+```
+
+Optionally set:
+
+```bash
+export XROAD_TOKEN_PIN=Secret1234
+export SS_IMG=niis/xroad-security-server:latest
+```
+
+### 4) Configure cross-host names for tests
+
+The Hurl container on Site A uses `development/hurl/scenarios/vars.multi-host.env` which supports overriding hostnames.
+Export these on Site A before running init/tests to point to resolvable names/IPs across hosts:
+
+```bash
+export CS_HOST=<site-a-cs-host-or-ip>
+export SS0_HOST=<site-a-ss0-host-or-ip>
+export TESTCA_HOST=<site-a-testca-host-or-ip>
+export ISSOAP_HOST=<site-a-issoap-host-or-ip>
+export ISOPENAPI_HOST=<site-a-isopenapi-host-or-ip>
+export ISREST_HOST=<site-a-isrest-host-or-ip>
+export SS1_HOST=<site-b-ss1-host-or-ip>
+```
+
+Hurl is wired via `compose.site-a.yaml` to load that vars file. If you run Hurl manually in the container, pass:
+
+```bash
+docker exec -it hurl env HURL_VARS_FILE=/hurl-files/scenarios/vars.multi-host.env hurl --variable-file /hurl-files/scenarios/vars.multi-host.env /hurl-files/scenarios/setup.hurl
+```
+
+### 5) X-Road configuration considerations
+
+- When SS1 runs on Site B, it will fetch global configuration from CS on Site A. Ensure Site B can reach Site A `cs_host` and `ss0_host` where needed.
+- Admin UIs are available on:
+  - Site A: CS `https://<site-a>:4100`, SS0 `https://<site-a>:4200`
+  - Site B: SS1 `https://<site-b>:4300`
+- Certificates and trust anchors are exchanged as usual; ensure clocks are in sync.
+
+### 6) Troubleshooting
+
+- Verify healthchecks: `docker ps` and `docker logs <service>` on both hosts.
+- Test reachability between hosts (ping/curl the mapped ports) and firewall rules.
+- If name resolution fails, use IPs in the env overrides.

@@ -1,0 +1,118 @@
+services:
+  cs:
+    image: ${CS_IMG}
+    container_name: cs
+    environment:
+      - XROAD_TOKEN_PIN=${XROAD_TOKEN_PIN:-Secret1234}
+    ports:
+      - "4100:4000" # CS Admin UI
+      - "4120:5432" # CS DB (optional)
+    healthcheck:
+      interval: 5s
+      retries: 40
+      test: [ "CMD", "curl", "-f", "-k", "https://localhost:4000" ]
+
+  ss0:
+    image: ${SS_IMG}
+    container_name: ss0
+    environment:
+      - XROAD_TOKEN_PIN=${XROAD_TOKEN_PIN:-Secret1234}
+      - PROXY_JMX_PORT=4299
+      - SIGNER_JMX_PORT=4298
+    ports:
+      - "4200:4000" # SS0 Admin UI
+      - "4210:8080" # SS0 Proxy
+    healthcheck:
+      interval: 5s
+      retries: 40
+      test: [ "CMD", "curl", "-f", "-k", "https://localhost:4000" ]
+
+  testca:
+    image: ${CA_IMG}
+    container_name: testca
+    ports:
+      - "4400:8888"
+    healthcheck:
+      interval: 5s
+      retries: 40
+      test: [ "CMD", "curl", "-f", "-k", "http://localhost:8888/testca/certs" ]
+    volumes:
+      - ca-volume:/home/ca/certs
+
+  isopenapi:
+    image: ${IS_OPENAPI_IMG}
+    container_name: isopenapi
+    ports:
+      - "4700:8080"
+    healthcheck:
+      interval: 5s
+      retries: 40
+      test: [ "CMD", "curl", "-f", "-k", "http://localhost:8080/v3/api-docs" ]
+
+  issoap:
+    image: ${IS_SOAP_IMG}
+    container_name: issoap
+    ports:
+      - "4600:8080"
+    healthcheck:
+      interval: 5s
+      retries: 40
+      test: [ "CMD", "curl", "-f", "-k", "http://localhost:8080/example-adapter/Endpoint?wsdl" ]
+    entrypoint: [ "java", "-Xms64m", "-Xmx256m", "-jar", "/example-adapter.war" ]
+
+  isrest:
+    image: wiremock/wiremock:latest
+    container_name: isrest
+    ports:
+      - "4500:8080"
+    healthcheck:
+      interval: 5s
+      retries: 40
+      test: [ "CMD", "curl", "-f", "-k", "http://localhost:8080/__admin/health" ]
+    volumes:
+      - ./wiremock_mappings:/home/wiremock/mappings
+
+  mailpit:
+    image: axllent/mailpit
+    container_name: mailpit
+    restart: unless-stopped
+    ports:
+      - "8025:8025" # UI
+      - "1025:1025" # SMTP
+    volumes:
+      - ./testmail:/data
+    environment:
+      MP_MAX_MESSAGES: 5000
+      MP_DATABASE: /data/mailpit.db
+      MP_SMTP_REQUIRE_STARTTLS: 1
+      MP_SMTP_TLS_CERT: /data/mailpit_cert.pem
+      MP_SMTP_TLS_KEY: /data/mailpit_key.pem
+      MP_SMTP_AUTH_FILE: /data/password_file
+
+  hurl:
+    build:
+      context: ../../development/hurl
+      dockerfile: ./Dockerfile
+    container_name: hurl
+    environment:
+      - HURL_VARS_FILE=/hurl-files/scenarios/vars.multi-host.env
+    volumes:
+      - ../../development/hurl:/hurl-files
+      - ca-volume:/hurl-files/ca
+    depends_on:
+      cs:
+        condition: service_healthy
+      testca:
+        condition: service_healthy
+      ss0:
+        condition: service_healthy
+      isopenapi:
+        condition: service_healthy
+      issoap:
+        condition: service_healthy
+      isrest:
+        condition: service_healthy
+
+volumes:
+  ca-volume:
+

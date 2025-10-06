@@ -1,0 +1,17 @@
+services:
+  ss1:
+    image: ${SS_IMG}
+    container_name: ss1
+    environment:
+      - XROAD_TOKEN_PIN=${XROAD_TOKEN_PIN:-Secret1234}
+      - PROXY_JMX_PORT=4399
+      - SIGNER_JMX_PORT=4398
+      # Configure remote hosts for CS, SS0, services if needed via env or mounted configs
+    ports:
+      - "4000:4000" # SS1 Admin UI
+      - "8080:8080" # SS1 Proxy
+    healthcheck:
+      interval: 5s
+      retries: 40
+      test: [ "CMD", "curl", "-f", "-k", "https://localhost:4000" ]
+
